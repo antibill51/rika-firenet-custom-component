@@ -20,7 +20,7 @@ PLATFORMS = [CLIMATE, SENSOR, SWITCH, NUMBER]
 
 SUPPORT_PRESET = [PRESET_NONE, PRESET_COMFORT]
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 DOMAIN = "rika_firenet"
 
 UNIQUE_ID = "unique_id"
@@ -29,7 +29,7 @@ DEFAULT_NAME = "Rika"
 NAME = "Rika Firenet"
 
 UPDATE_LISTENER = "update_listener"
-ISSUE_URL = "https://github.com/fockaert/rika-firenet-custom-component/issues"
+ISSUE_URL = "https://github.com/antibill51/rika-firenet-custom-component/issues"
 
 # Defaults
 STARTUP_MESSAGE = f"""
