@@ -4,21 +4,11 @@ from homeassistant.const import PERCENTAGE, UnitOfTemperature
 from .entity import RikaFirenetEntity
 from homeassistant.components.number import NumberEntity
 
-from .const import (
-    DOMAIN
-)
+from .const import DOMAIN
 from .core import RikaFirenetCoordinator
 from .core import RikaFirenetStove
 
 _LOGGER = logging.getLogger(__name__)
-
-DEVICE_NUMBERS = [
-    "room power request",
-    "heating power",
-    "temperature offset",
-    "set back temperature"
-]
-
 
 async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.info("setting up platform number")
@@ -26,17 +16,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     stove_entities = []
 
-    # Create stove numbers
+    # Crée les entités 'number' pour chaque poêle
     for stove in coordinator.get_stoves():
-
-# Ajout number selon type de poele
-        if RikaFirenetStove.is_multiAir1(stove) :
+        DEVICE_NUMBERS = [
+            "room power request",
+            "heating power",
+            "temperature offset",
+            "set back temperature"
+        ]
+        # Ajout de paramètres pour les poêles multi-air
+        if RikaFirenetStove.is_multiAir1(stove):
             DEVICE_NUMBERS.append("convection fan1 level")
             DEVICE_NUMBERS.append("convection fan1 area")
-        if RikaFirenetStove.is_multiAir2(stove) :
+        if RikaFirenetStove.is_multiAir2(stove):
             DEVICE_NUMBERS.append("convection fan2 level")
             DEVICE_NUMBERS.append("convection fan2 area")
 
+        # Crée les entités 'number' pour chaque appareil
         stove_entities.extend(
             [
                 RikaFirenetStoveNumber(entry, stove, coordinator, number)
@@ -51,7 +47,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, number):
         super().__init__(config_entry, stove, coordinator, number)
-
         self._number = number
 
     @property
@@ -153,7 +148,7 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
         return "mdi:speedometer"
 
     def set_native_value(self, value: float) -> None:
-        _LOGGER.info("set_value " + self._number + " " + str(value))
+        _LOGGER.info(f"set_value {self._number} {value}")
         if self._number == "room power request":
             self._stove.set_room_power_request(int(value))
         elif self._number == "heating power":
