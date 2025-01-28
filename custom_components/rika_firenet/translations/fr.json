@@ -5,8 +5,8 @@
         "title": "Rika Firenet",
         "description": "Configurez l'intégration de Rika Firenet",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "username": "Identifiant",
+          "password": "Mot de passe"
         }
       }
     },
@@ -46,7 +46,7 @@
           "big_clean": "Nettoyage approfondi",
           "clean": "Nettoyage",
           "burn_off": "Fin de combustion",
-          "split_log_check": "Contrôle de la présence du bois",
+          "split_log_check": "Contrôle du bois",
           "split_log_mode": "Mode bois",
           "split_log_stop_refuel": "Ne pas réalimenter",
           "unknown": "Inconnu",
