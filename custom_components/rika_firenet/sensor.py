@@ -8,22 +8,22 @@ from .core import RikaFirenetCoordinator, RikaFirenetStove
 _LOGGER = logging.getLogger(__name__)
 
 SENSOR_ATTRIBUTES = {
-    "stove_consumption": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_consumption"},
-    "stove_runtime": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_pellets"},
-    "stove_runtime_logs": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_logs"},
-    "stove_temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_temperature"},
-    "stove_bake_temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_bake_temperature"},
-    "room_temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_temperature"},
-    "stove_thermostat": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_thermostat"},
-    "stove_burning": {"icon": "mdi:fire", "category": EntityCategory.DIAGNOSTIC,"command": "is_stove_burning"},
-    "stove_status": {"icon": "mdi:information-outline","command": "get_status_text"},
-    "pellets_before_service": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_pellets_before_service"},
-    "fan_velocity": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_fan_velocity"},
-    "diag_motor": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_diag_motor"},
+    "stove consumption": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_consumption"},
+    "stove runtime": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_pellets"},
+    "stove runtime logs": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_logs"},
+    "stove temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_temperature"},
+    "stove bake temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_bake_temperature"},
+    "room temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_temperature"},
+    "stove thermostat": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_thermostat"},
+    "stove burning": {"icon": "mdi:fire", "category": EntityCategory.DIAGNOSTIC,"command": "is_stove_burning"},
+    "stove status": {"icon": "mdi:information-outline","command": "get_status_text"},
+    "pellets before service": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_pellets_before_service"},
+    "fan velocity": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_fan_velocity"},
+    "diag motor": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_diag_motor"},
     "airflaps": {"unit": PERCENTAGE,"icon": "mdi:rotate-right", "category": EntityCategory.DIAGNOSTIC,"command": "get_outputAirFlaps"},
-    "number_fail": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_number_fail"},
-    "main_state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_main_state"},
-    "sub_state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_sub_state"},
+    "number fail": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_number_fail"},
+    "main state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_main_state"},
+    "sub state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_sub_state"},
     "statusError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_error"},
     "statusSubError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_sub_error"},
 }
@@ -37,26 +37,26 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     for stove in coordinator.get_stoves():
         DEVICE_SENSORS = [
-            "stove_consumption",
-            "stove_runtime",
-            "stove_temperature",
-            "room_temperature",
-            "stove_thermostat",
-            "stove_burning",
-            "stove_status",
-            "pellets_before_service",
-            "fan_velocity",
-            "diag_motor",
-            "number_fail",
-            "main_state",
-            "sub_state",
+            "stove consumption",
+            "stove runtime",
+            "stove temperature",
+            "room temperature",
+            "stove thermostat",
+            "stove burning",
+            "stove status",
+            "pellets before service",
+            "fan velocity",
+            "diag motor",
+            "number fail",
+            "main state",
+            "sub state",
             "statusError",
             "statusSubError"
         ]
 
         if RikaFirenetStove.is_logRuntimePossible(stove):
-            DEVICE_SENSORS.append("stove_runtime_logs")
-            DEVICE_SENSORS.append("stove_bake_temperature")
+            DEVICE_SENSORS.append("stove runtime logs")
+            DEVICE_SENSORS.append("stove bake temperature")
         if RikaFirenetStove.is_airFlapsPossible(stove):
             DEVICE_SENSORS.append("airflaps")
 
