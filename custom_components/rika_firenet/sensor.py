@@ -1,5 +1,5 @@
 import logging
-from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE
+from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE, REVOLUTIONS_PER_MINUTE
 from homeassistant.helpers.entity import EntityCategory
 from .entity import RikaFirenetEntity
 from .const import DOMAIN
@@ -18,9 +18,9 @@ SENSOR_ATTRIBUTES = {
     "stove_burning": {"icon": "mdi:fire", "category": EntityCategory.DIAGNOSTIC,"command": "is_stove_burning"},
     "stove_status": {"icon": "mdi:information-outline","command": "get_status_text"},
     "pellets_before_service": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_pellets_before_service"},
-    "fan_velocity": {"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_fan_velocity"},
-    "diag_motor": {"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_diag_motor"},
-    "airflaps": {"icon": "mdi:rotate-right", "category": EntityCategory.DIAGNOSTIC,"command": "get_outputAirFlaps"},
+    "fan_velocity": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_fan_velocity"},
+    "diag_motor": {"unit": REVOLUTIONS_PER_MINUTE,"icon": "mdi:speedometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_diag_motor"},
+    "airflaps": {"unit": PERCENTAGE,"icon": "mdi:rotate-right", "category": EntityCategory.DIAGNOSTIC,"command": "get_outputAirFlaps"},
     "number_fail": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_number_fail"},
     "main_state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_main_state"},
     "sub_state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_sub_state"},
