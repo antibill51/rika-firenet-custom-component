@@ -33,7 +33,7 @@
   },
   "entity": {
     "sensor": {
-      "stove_status": {
+      "stove status": {
         "state": {
           "frost_protection": "Frost protection",
           "stove_off": "Stove off",

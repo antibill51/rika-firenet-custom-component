@@ -33,7 +33,7 @@
   },
   "entity": {
     "sensor": {
-      "stove_status": {
+      "stove status": {
         "state": {
           "frost_protection": "Vorst beveiliging",
           "stove_off": "Kachel uit",
