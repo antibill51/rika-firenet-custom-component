@@ -362,14 +362,21 @@ class RikaFirenetStove:
     def get_stove_consumption(self):
         return self._state['sensors'].get('parameterFeedRateTotal')
 
-    def get_stove_runtime(self):
+    def get_stove_runtime_pellets(self):
         return self._state['sensors'].get('parameterRuntimePellets')
+
+    def get_stove_runtime_logs(self):
+        minutes = self._state['sensors'].get('parameterRuntimeLogs') or 0  # Remplace None par 0
+        return minutes // 60
 
     def get_pellets_before_service(self):
         return self._state['sensors'].get('parameterFeedRateService')
 
     def get_stove_temperature(self):
         return self._state['sensors'].get('inputFlameTemperature')
+
+    def get_bake_temperature(self):
+        return self._state['sensors'].get('inputBakeTemperature')
 
     def get_diag_motor(self):
         return self._state['sensors'].get('outputDischargeMotor')
@@ -395,8 +402,15 @@ class RikaFirenetStove:
     def get_status_sub_error(self):
         return self._state['sensors'].get('statusSubError')
     
-    def is_EcoModePossible(self):
+    def get_outputAirFlaps(self):
+        flaps = self._state['sensors'].get('outputAirFlaps')
+        return float(flaps / 10)
+    
+    def is_airFlapsPossible(self):
         return self._state['stoveFeatures'].get('airFlaps')
+
+    def is_logRuntimePossible(self):
+        return self._state['stoveFeatures'].get('logRuntime')
 
     def is_multiAir1(self):
         return self._state['stoveFeatures'].get('multiAir1')

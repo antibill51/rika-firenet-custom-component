@@ -15,7 +15,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     for stove in coordinator.get_stoves():
         stove_switches = ["on off", "heating times"]
 
-        if RikaFirenetStove.is_EcoModePossible(stove):
+        if RikaFirenetStove.is_airFlapsPossible(stove):
             stove_switches.append("eco mode")
         if RikaFirenetStove.is_multiAir1(stove):
             stove_switches.append("convection fan1")
