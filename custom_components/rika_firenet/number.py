@@ -50,6 +50,10 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
         self._number = number
 
     @property
+    def unique_id(self):
+        return f"{self._stove._id}_{self._number}".lower()
+
+    @property
     def native_min_value(self) -> float:
         if self._number == "room power request":
             return 1

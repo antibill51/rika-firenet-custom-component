@@ -41,6 +41,10 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
     @property
     def unique_id(self):
         return f"{self._stove._id}_{self._switch_type}".lower()
+    
+    @property
+    def translation_key(self):
+        return self._switch_type
 
     @property
     def icon(self):
@@ -64,7 +68,7 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
             return self._stove.is_stove_eco_mode()
 
     def turn_on(self, **kwargs):
-        _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove.name)
+        _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove._name)
         try:
             if self._switch_type == "on off":
                 self._stove.turn_on()
@@ -81,7 +85,7 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
             _LOGGER.error("Failed to turn on '%s': %s", self._switch_type, ex)
 
     def turn_off(self, **kwargs):
-        _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove.name)
+        _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove._name)
         try:
             if self._switch_type == "on off":
                 self._stove.turn_off()

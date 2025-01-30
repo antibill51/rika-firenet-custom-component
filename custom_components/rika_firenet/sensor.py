@@ -76,6 +76,10 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
         self._sensor = sensor
 
     @property
+    def unique_id(self):
+        return f"{self._stove._id}_{self._sensor}".lower()
+
+    @property
     def state(self):
         return getattr(self._stove, f"{SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")}")()
 

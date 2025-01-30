@@ -42,23 +42,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     _enable_turn_on_off_backwards_compatibility = False
 
-    def _get_stove_status(self):
-        """Helper method to get stove status text."""
-        return self._stove.get_status_text()
-
-    def _get_operation_mode(self):
-        """Helper method to get stove operation mode."""
-        return self._stove.get_stove_operation_mode()
-
-    def _get_heating_state(self):
-        """Helper method to check if stove is heating."""
-        status = self._get_stove_status()
-        if status == "stove_off" or status == "offline":
-            return HVACAction.OFF
-        elif status == "standby":
-            return HVACAction.IDLE
-        return HVACAction.HEATING
-
     @property
     def entity_picture(self):
         return self._stove.get_status_picture()
@@ -85,6 +68,54 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
         """Return the current preset mode, e.g., home, away, temp."""
         return PRESET_COMFORT if self._get_operation_mode() == 2 else PRESET_NONE
 
+    @property
+    def target_temperature(self):
+        return self._stove.get_room_thermostat()
+
+    @property
+    def target_temperature_step(self):
+        return 1
+
+    @property
+    def hvac_modes(self) -> HVACMode:
+        return HVAC_MODES
+
+    @property
+    def hvac_mode(self):
+        return self._stove.get_hvac_mode()
+
+    @property
+    def hvac_action(self) -> HVACAction:
+        """Return current operation ie. heat, cool, idle."""
+        return self._get_heating_state()
+
+    @property
+    def supported_features(self):
+        return SUPPORT_FLAGS
+
+    @property
+    def temperature_unit(self):
+        return UnitOfTemperature.CELSIUS
+
+
+
+
+    def set_temperature(self, **kwargs):
+        temperature = int(kwargs.get(ATTR_TEMPERATURE))
+        _LOGGER.debug(f'set_temperature(): {temperature}')
+        if kwargs.get(ATTR_TEMPERATURE) is None:
+            return
+        if not self._stove.is_stove_on():
+            return
+        # do nothing if HVAC is switched off
+        self._stove.set_stove_temperature(temperature)
+        self.schedule_update_ha_state()
+
+    def set_hvac_mode(self, hvac_mode):
+        _LOGGER.debug(f'set_hvac_mode(): {hvac_mode}')
+        self._stove.set_hvac_mode(str(hvac_mode))
+        self.schedule_update_ha_state()
+
     def set_preset_mode(self, preset_mode):
         """Set new preset mode."""
         _LOGGER.debug('preset mode : ' + str(preset_mode))
@@ -99,47 +130,19 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
                 self._stove.set_stove_operation_mode(0)
         self.schedule_update_ha_state()
 
-    @property
-    def target_temperature(self):
-        return self._stove.get_room_thermostat()
+    def _get_stove_status(self):
+        """Helper method to get stove status text."""
+        return self._stove.get_status_text()
 
-    @property
-    def target_temperature_step(self):
-        return 1
+    def _get_operation_mode(self):
+        """Helper method to get stove operation mode."""
+        return self._stove.get_stove_operation_mode()
 
-    @property
-    def hvac_mode(self):
-        return self._stove.get_hvac_mode()
-
-    @property
-    def hvac_modes(self) -> HVACMode:
-        return HVAC_MODES
-
-    @property
-    def hvac_action(self) -> HVACAction:
-        """Return current operation ie. heat, cool, idle."""
-        return self._get_heating_state()
-
-    def set_hvac_mode(self, hvac_mode):
-        _LOGGER.debug(f'set_hvac_mode(): {hvac_mode}')
-        self._stove.set_hvac_mode(str(hvac_mode))
-        self.schedule_update_ha_state()
-
-    @property
-    def supported_features(self):
-        return SUPPORT_FLAGS
-
-    @property
-    def temperature_unit(self):
-        return UnitOfTemperature.CELSIUS
-
-    def set_temperature(self, **kwargs):
-        temperature = int(kwargs.get(ATTR_TEMPERATURE))
-        _LOGGER.debug(f'set_temperature(): {temperature}')
-        if kwargs.get(ATTR_TEMPERATURE) is None:
-            return
-        if not self._stove.is_stove_on():
-            return
-        # do nothing if HVAC is switched off
-        self._stove.set_stove_temperature(temperature)
-        self.schedule_update_ha_state()
+    def _get_heating_state(self):
+        """Helper method to check if stove is heating."""
+        status = self._get_stove_status()
+        if status == "stove_off" or status == "offline":
+            return HVACAction.OFF
+        elif status == "standby":
+            return HVACAction.IDLE
+        return HVACAction.HEATING
