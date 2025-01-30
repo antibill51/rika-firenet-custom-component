@@ -189,8 +189,6 @@ card:
 type: custom:config-template-card
 variables:
   IMG: states['climate.rika_domo'].attributes.entity_picture
-  POWER: |
-    { (states['number.rika_domo_heating_power'].state)*1 }
   TEMP: states['climate.rika_domo'].attributes.temperature
   STEP: states['climate.rika_domo'].attributes.target_temp_step
 entities:
