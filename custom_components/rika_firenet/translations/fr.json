@@ -14,7 +14,7 @@
       "auth": "Email/Mot de passe erroné."
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est authorisée."
+      "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée."
     }
   },
   "options": {
@@ -22,7 +22,7 @@
       "user": {
         "data": {
           "defaultTemperature": "Température par défaut",
-          "defaultScanInterval": "Intervale par défaut (15 secondes)",
+          "defaultScanInterval": "Intervalle par défaut (15 secondes)",
           "climate": "Climate activé",
           "sensor": "Sensor activé",
           "switch": "Switch activé",
@@ -54,6 +54,19 @@
           "smoke_fan": "Erreur ventil. fumée",
           "error": "Erreur",
           "empty_tank": "Réservoir vide"
+        }
+      }
+    },
+    "climate": {
+      "stove_climate": {
+        "state": {
+          "off": "Éteint",
+          "heat": "Chauffage",
+          "auto": "Automatique"
+        },
+        "preset_mode": {
+          "comfort": "Confort",
+          "none": "Aucun"
         }
       }
     }

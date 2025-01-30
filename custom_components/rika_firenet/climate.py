@@ -41,6 +41,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     _enable_turn_on_off_backwards_compatibility = False
+    def __init__(self, config_entry, stove, coordinator):
+        super().__init__(config_entry, stove, coordinator)
+        self._attr_translation_key = "stove_climate"  # Clé utilisée pour la traduction
 
     @property
     def entity_picture(self):
