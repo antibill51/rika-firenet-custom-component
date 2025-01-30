@@ -174,14 +174,24 @@ card:
       hide:
         state: true
         temperature: true
+      control:
+        hvac:
+          'off':
+            name: Arrêt
+          'heat':
+            name: Manuel
+          'auto':
+            name: Automatique
+        preset:
+          'comfort': 
+            name: Confort
+          'none':
+            name: Normal
       layout:
         mode:
           names: true
           icons: false
           headings: false
-      control:control:
-        - hvac
-        - preset
       step_layout: column
 ```
 #### COMFORT (Temperature) : 
@@ -322,9 +332,19 @@ card:
           names: true
           icons: false
           headings: false
-      control:control:
-        - hvac
-        - preset
+      control:
+        hvac:
+          'off':
+            name: Arrêt
+          'heat':
+            name: Manuel
+          'auto':
+            name: Automatique
+        preset:
+          'comfort': 
+            name: Confort
+          'none':
+            name: Normal
       step_layout: column
 ```
 
