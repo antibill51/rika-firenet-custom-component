@@ -22,7 +22,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "room power request",
             "heating power",
             "temperature offset",
-            "set back temperature"
+            "set back temperature",
+            "set frost protection temperature"
         ]
         # Ajout de paramètres pour les poêles multi-air
         if RikaFirenetStove.is_multiAir1(stove):
@@ -69,6 +70,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return -30
         elif self._number == "set back temperature":
             return 12
+        elif self._number == "set frost protection temperature":
+            return 4
         elif self._number == "temperature offset":
             return -4
         return 0
@@ -89,6 +92,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return 30
         elif self._number == "set back temperature":
             return 20
+        elif self._number == "set frost protection temperature":
+            return 10
         elif self._number == "temperature offset":
             return 4
         return 100
@@ -108,6 +113,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
         elif self._number == "convection fan2 area":
             return 1
         elif self._number == "set back temperature":
+            return 1
+        elif self._number == "set frost protection temperature":
             return 1
         elif self._number == "temperature offset":
             return 0.1
@@ -129,6 +136,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return self._stove.get_convection_fan2_area()
         elif self._number == "set back temperature":
             return self._stove.get_stove_set_back_temperature()
+        elif self._number == "set frost protection temperature":
+            return self._stove.get_frost_protection_temperature()
         elif self._number == "temperature offset":
             return self._stove.get_temperatureOffset()
 
@@ -141,6 +150,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
         elif self._number == "convection fan2 area":
             return PERCENTAGE
         elif self._number == "set back temperature":
+            return UnitOfTemperature.CELSIUS
+        elif self._number == "set frost protection temperature":
             return UnitOfTemperature.CELSIUS
         elif self._number == "temperature offset":
             return UnitOfTemperature.CELSIUS
@@ -167,6 +178,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return self._stove.set_convection_fan2_area(int(value))
         elif self._number == "set back temperature":
             return self._stove.set_stove_set_back_temperature(value)
+        elif self._number == "set frost protection temperature":
+            return self._stove.set_frost_protection_temperature(int(value))
         elif self._number == "temperature offset":
             return self._stove.set_temperatureOffset(value)
         self.schedule_update_ha_state()

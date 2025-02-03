@@ -13,7 +13,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     stove_entities = []
 
     for stove in coordinator.get_stoves():
-        stove_switches = ["on off", "heating times"]
+        stove_switches = ["on off", "heating times", "frost protection"]
 
         if RikaFirenetStove.is_airFlapsPossible(stove):
             stove_switches.append("eco mode")
@@ -52,6 +52,8 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
             return "hass:leaf"
         elif self._switch_type.startswith("convection fan"):
             return "hass:fan"
+        elif self._switch_type.startswith("frost protection"):
+            return "hass:snowflake-check"
         return "hass:power"
 
     @property
@@ -66,20 +68,24 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
             return self._stove.is_stove_heating_times_on()
         elif self._switch_type == "eco mode":
             return self._stove.is_stove_eco_mode()
+        elif self._switch_type == "frost protection":
+            return self._stove.is_frost_protection()
 
     def turn_on(self, **kwargs):
         _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove._name)
         try:
             if self._switch_type == "on off":
-                self._stove.turn_on()
+                self._stove.set_stove_on_off(True)
             elif self._switch_type == "convection fan1":
-                self._stove.turn_convection_fan1_on()
+                self._stove.turn_convection_fan1_on_off(True)
             elif self._switch_type == "convection fan2":
-                self._stove.turn_convection_fan2_on()
+                self._stove.turn_convection_fan2_on_off(True)
             elif self._switch_type == "heating times":
                 self._stove.turn_heating_times_on()
             elif self._switch_type == "eco mode":
-                self._stove.turn_on_eco_mode()
+                self._stove.turn_on_off_eco_mode(True)
+            elif self._switch_type == "frost protection":
+                 self._stove.turn_on_off_frost_protection(True)
             self.schedule_update_ha_state()
         except Exception as ex:
             _LOGGER.error("Failed to turn on '%s': %s", self._switch_type, ex)
@@ -88,15 +94,17 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
         _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove._name)
         try:
             if self._switch_type == "on off":
-                self._stove.turn_off()
+                self._stove.set_stove_on_off(False)
             elif self._switch_type == "convection fan1":
-                self._stove.turn_convection_fan1_off()
+                self._stove.turn_convection_fan1_on_off(False)
             elif self._switch_type == "convection fan2":
-                self._stove.turn_convection_fan2_off()
+                self._stove.turn_convection_fan2_on_off(False)
             elif self._switch_type == "heating times":
                 self._stove.turn_heating_times_off()
             elif self._switch_type == "eco mode":
-                self._stove.turn_off_eco_mode()
+                self._stove.turn_on_off_eco_mode(False)
+            elif self._switch_type == "frost protection":
+                 self._stove.turn_on_off_frost_protection(False)
             self.schedule_update_ha_state()
         except Exception as ex:
             _LOGGER.error("Failed to turn off '%s': %s", self._switch_type, ex)

@@ -157,6 +157,11 @@ class RikaFirenetStove:
         self._state['controls']['targetTemperature'] = float(temperature)
         self._coordinator.set_NeedSend()
 
+    def set_frost_protection_temperature(self, temperature):
+        _LOGGER.debug("set_frost_protection_temperature(): " + str(temperature))
+        self._state['controls']['frostProtectionTemperature'] = int(temperature)
+        self._coordinator.set_NeedSend()
+
     def set_stove_set_back_temperature(self, temperature):
         _LOGGER.debug("set_back_temperature(): " + str(temperature))
         self._state['controls']['setBackTemperature'] = float(temperature)
@@ -238,6 +243,11 @@ class RikaFirenetStove:
         self._state['controls']['ecoMode'] = on_off
         self._coordinator.set_NeedSend()
 
+    def turn_on_off_frost_protection(self, on_off=False):
+        _LOGGER.info("Set Frost Protection: " + str(on_off))
+        self._state['controls']['frostProtectionActive'] = on_off
+        self._coordinator.set_NeedSend()
+
 #End
 
     def get_control_state(self):
@@ -267,14 +277,11 @@ class RikaFirenetStove:
     def is_stove_eco_mode(self):
         return self._state['controls'].get('ecoMode')
 
+    def is_frost_protection(self):
+        return self._state['controls'].get('frostProtectionActive')
+
     def get_stove_set_back_temperature(self):
         return float(self._state['controls']['setBackTemperature'])
-
-    def turn_on(self):
-        self.set_stove_on_off(True)
-
-    def turn_off(self):
-        self.set_stove_on_off(False)
 
     def get_stove_operation_mode(self):
         return self._state['controls'].get('operatingMode')
@@ -309,7 +316,7 @@ class RikaFirenetStove:
 
     def set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVACMode.OFF:
-            self.turn_off()
+            self.set_stove_on_off(False)
         elif hvac_mode == HVACMode.AUTO:
             _LOGGER.debug("Turn heating times on")
             self.turn_heating_times_on()
@@ -317,20 +324,8 @@ class RikaFirenetStove:
             _LOGGER.debug("Turn heating times off")
             self.turn_heating_times_off()
 
-    def turn_on_eco_mode(self):
-        self.turn_on_off_eco_mode(True)
-
-    def turn_off_eco_mode(self):
-        self.turn_on_off_eco_mode(False)
-
     def is_stove_convection_fan1_on(self):
         return self._state['controls'].get('convectionFan1Active')
-
-    def turn_convection_fan1_on(self):
-        self.turn_convection_fan1_on_off(True)
-
-    def turn_convection_fan1_off(self):
-        self.turn_convection_fan1_on_off(False)
 
     def get_convection_fan1_level(self):
         return self._state['controls'].get('convectionFan1Level')
@@ -340,12 +335,6 @@ class RikaFirenetStove:
 
     def is_stove_convection_fan2_on(self):
         return self._state['controls'].get('convectionFan2Active')
-
-    def turn_convection_fan2_on(self):
-        self.turn_convection_fan2_on_off(True)
-
-    def turn_convection_fan2_off(self):
-        self.turn_convection_fan2_on_off(False)
 
     def get_convection_fan2_level(self):
         return self._state['controls'].get('convectionFan2Level')
@@ -418,6 +407,8 @@ class RikaFirenetStove:
     def is_multiAir2(self):
         return self._state['stoveFeatures'].get('multiAir2')
 
+    def get_frost_protection_temperature(self):
+        return int(self._state['controls'].get('frostProtectionTemperature'))
 
     def get_status(self):
         main_state = self.get_main_state()
