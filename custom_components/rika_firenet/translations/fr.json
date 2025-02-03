@@ -48,6 +48,7 @@
           "burn_off": "Fin de combustion",
           "split_log_check": "Contrôle du bois",
           "split_log_mode": "Mode bois",
+          "split_log_ecomode": "Mode Éco",
           "split_log_refuel": "Recharger en bois",
           "split_log_stop_refuel": "Ne pas réalimenter",
           "unknown": "Inconnu",
@@ -63,7 +64,7 @@
         "state": {
           "off": "Éteint",
           "heat": "Chauffage",
-          "auto": "Automatique"
+          "auto": "Plages horaires"
         },
         "preset_mode": {
           "comfort": "Confort",

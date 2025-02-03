@@ -427,6 +427,7 @@ class RikaFirenetStove:
         statusSubError = self.get_status_sub_error()
         lastSeenMinutes = int(self._state['lastSeenMinutes'])
         stove_temp = self.get_stove_temperature()
+        eco_mode = bool(self._state['controls'].get('ecoMode'))
 
 
 # DEBUG for errors
@@ -477,6 +478,8 @@ class RikaFirenetStove:
             return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_refuel"]
         elif main_state == 21 and sub_state == 12 and stove_temp < 300:
             return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_stop_refuel"]
+        elif main_state == 20 and eco_mode:
+            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_ecomode"]
         elif main_state == 20 or main_state == 21:
             return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_mode"]
         return ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "unknown"]
