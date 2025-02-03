@@ -12,7 +12,6 @@ SENSOR_ATTRIBUTES = {
     "stove runtime": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_pellets"},
     "stove runtime logs": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_logs"},
     "stove temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_temperature"},
-    "stove bake temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_bake_temperature"},
     "room temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_temperature"},
     "stove thermostat": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_thermostat"},
     "stove burning": {"icon": "mdi:fire", "category": EntityCategory.DIAGNOSTIC,"command": "is_stove_burning"},
@@ -56,7 +55,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
         if RikaFirenetStove.is_logRuntimePossible(stove):
             DEVICE_SENSORS.append("stove runtime logs")
-            DEVICE_SENSORS.append("stove bake temperature")
         if RikaFirenetStove.is_airFlapsPossible(stove):
             DEVICE_SENSORS.append("airflaps")
 

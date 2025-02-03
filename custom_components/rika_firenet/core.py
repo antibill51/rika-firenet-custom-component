@@ -364,9 +364,6 @@ class RikaFirenetStove:
     def get_stove_temperature(self):
         return self._state['sensors'].get('inputFlameTemperature')
 
-    def get_bake_temperature(self):
-        return self._state['sensors'].get('inputBakeTemperature')
-
     def get_diag_motor(self):
         return self._state['sensors'].get('outputDischargeMotor')
 
