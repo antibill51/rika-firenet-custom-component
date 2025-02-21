@@ -48,12 +48,27 @@
           "burn_off": "Burn off",
           "split_log_check": "Split log check",
           "split_log_mode": "Split log mode",
+          "split_log_ecomode": "Split log eco mode",
+          "split_log_refuel": "Split log refuel",
           "split_log_stop_refuel": "Split log stop refuel",
           "unknown": "Unknown",
           "offline": "Offline",
           "smoke_fan": "Error smoke fan",
           "error": "Error",
           "empty_tank": "Empty tank"
+        }
+      }
+    },
+    "climate": {
+      "stove_climate": {
+        "state": {
+          "off": "Off",
+          "heat": "Manual",
+          "auto": "Automatic"
+        },
+        "preset_mode": {
+          "comfort": "Comfort",
+          "none": "Normal"
         }
       }
     }

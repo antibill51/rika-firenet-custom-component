@@ -49,7 +49,7 @@ For pellet in stock :
 I use GSG2.0 for Pellet stock. https://domotique-home.fr/gestion-de-chauffage-stock-de-granules-gsg/
 
 ### Lovelace card basic example : 
-#### MANUAL (power in percent) : 
+#### PRESET MODE NORMAL (power in percent) : 
 ```yaml
 type: custom:config-template-card
 variables:
@@ -194,7 +194,7 @@ card:
           headings: false
       step_layout: column
 ```
-#### COMFORT (Temperature) : 
+#### PRESET MODE COMFORT (Target temperature) : 
 ```yaml
 type: custom:config-template-card
 variables:

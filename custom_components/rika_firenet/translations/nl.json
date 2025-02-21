@@ -3,30 +3,30 @@
     "step": {
       "user": {
         "title": "Rika Firenet",
-        "description": "Setup integration with Rika Firenet",
+        "description": "Installatie van Rika Firenet-integratie",
         "data": {
-          "username": "Username",
-          "password": "Password"
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord"
         }
       }
     },
     "error": {
-      "auth": "Username/Password is wrong."
+      "auth": "Gebruikersnaam/Wachtwoord is onjuist."
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed."
+      "single_instance_allowed": "Slechts één configuratie van Rika Firenet is toegestaan."
     }
   },
   "options": {
     "step": {
       "user": {
         "data": {
-          "defaultTemperature": "Default temperature",
-          "defaultScanInterval": "Default scan interval (15 seconds)",
-          "climate": "Climate enabled",
-          "sensor": "Sensor enabled",
-          "switch": "Switch enabled",
-          "number": "Number enabled"
+          "defaultTemperature": "Standaard temperatuur",
+          "defaultScanInterval": "Standaard scaninterval (15 seconden)",
+          "climate": "Klimaat ingeschakeld",
+          "sensor": "Sensor ingeschakeld",
+          "switch": "Schakelaar ingeschakeld",
+          "number": "Nummer ingeschakeld"
         }
       }
     }
@@ -35,25 +35,40 @@
     "sensor": {
       "stove status": {
         "state": {
-          "frost_protection": "Vorst beveiliging",
+          "frost_protection": "Vorstbeveiliging",
           "stove_off": "Kachel uit",
-          "standby": "Standby",
-          "external_request": "Extern contact",
-          "sub_state_unknown": "Substate onbekend",
-          "ignition_on": "Ontsteken",
+          "standby": "Stand-by",
+          "external_request": "Externe aanvraag",
+          "sub_state_unknown": "Substatus onbekend",
+          "ignition_on": "Ontsteking aan",
           "starting_up": "Opstarten",
-          "running": "Pelletmodule",
-          "big_clean": "Grote Reiniging",
+          "running": "In bedrijf",
+          "big_clean": "Grote reiniging",
           "clean": "Reiniging",
           "burn_off": "Uitdoven",
-          "split_log_check": "Hout check",
-          "split_log_mode": "Regeling Hout",
+          "split_log_check": "Houtcontrole",
+          "split_log_mode": "Houtmodus",
+          "split_log_ecomode": "Eco-modus hout",
+          "split_log_refuel": "Hout bijvullen",
           "split_log_stop_refuel": "Niet opnieuw voeden",
           "unknown": "Onbekend",
-          "offline": "Losgekoppeld",
-          "smoke_fan": "Error smoke fan",
-          "error": "Error",
-          "empty_tank": "Empty tank"
+          "offline": "Offline",
+          "smoke_fan": "Fout rookventilator",
+          "error": "Fout",
+          "empty_tank": "Lege tank"
+        }
+      }
+    },
+    "climate": {
+      "stove_climate": {
+        "state": {
+          "off": "Uit",
+          "heat": "Handmatig",
+          "auto": "Automatisch"
+        },
+        "preset_mode": {
+          "comfort": "Comfort",
+          "none": "Normaal"
         }
       }
     }

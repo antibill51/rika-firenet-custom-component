@@ -63,12 +63,12 @@
       "stove_climate": {
         "state": {
           "off": "Éteint",
-          "heat": "Chauffage",
-          "auto": "Plages horaires"
+          "heat": "Manuel",
+          "auto": "Automatique"
         },
         "preset_mode": {
           "comfort": "Confort",
-          "none": "Manuel"
+          "none": "Normal"
         }
       }
     }

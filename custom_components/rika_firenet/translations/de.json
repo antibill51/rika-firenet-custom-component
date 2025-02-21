@@ -48,12 +48,27 @@
           "burn_off": "Ausbrand",
           "split_log_check": "Scheitholzcheck",
           "split_log_mode": "Scheitholzbetrieb",
+          "split_log_ecomode": "Scheitholz-Ökomodus",
+          "split_log_refuel": "Scheitholz nachfüllen",
           "split_log_stop_refuel": "Kein Holz hinzufügen",
           "unknown": "Unbekanntes Problem",
           "offline": "Offline",
           "smoke_fan": "Fehler Abgasgebläse",
           "error": "Fehler",
           "empty_tank": "Tank leer"
+        }
+      }
+    },
+    "climate": {
+      "stove_climate": {
+        "state": {
+          "off": "Aus",
+          "heat": "Manuell",
+          "auto": "Automatisch"
+        },
+        "preset_mode": {
+          "comfort": "Komfort",
+          "none": "Normal"
         }
       }
     }
