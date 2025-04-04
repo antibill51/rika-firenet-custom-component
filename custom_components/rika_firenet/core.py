@@ -134,6 +134,8 @@ class RikaFirenetStove:
         self._id = stove_id
         self._name = name
         self._state = None
+        self._pellet_stock_capacity = 15  # Valeur par défaut en kg
+        self._pellet_stock = self._pellet_stock_capacity  # Initialiser au maximum
 
     def __repr__(self):
         return f'Stove(id={self._id}, name={self._name})'
@@ -144,8 +146,6 @@ class RikaFirenetStove:
 
     def get_number_fail(self):
         return int(self._coordinator.get_number_fail())
-
-#Send command
 
     def set_temperatureOffset(self, temperature):
         _LOGGER.debug("set_offset_temperature(): " + str(temperature))
@@ -247,8 +247,6 @@ class RikaFirenetStove:
         _LOGGER.info("Set Frost Protection: " + str(on_off))
         self._state['controls']['frostProtectionActive'] = on_off
         self._coordinator.set_NeedSend()
-
-#End
 
     def get_control_state(self):
         return self._state['controls']
@@ -417,8 +415,6 @@ class RikaFirenetStove:
         stove_temp = self.get_stove_temperature()
         eco_mode = bool(self._state['controls'].get('ecoMode'))
 
-
-# DEBUG for errors
         if lastSeenMinutes != 0:
             _LOGGER.debug("lastSeenMinutes: " + str(lastSeenMinutes))
         if statusError != 0:
@@ -471,3 +467,46 @@ class RikaFirenetStove:
         elif main_state == 20 or main_state == 21:
             return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_mode"]
         return ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "unknown"]
+
+    def get_pellet_stock_capacity(self):
+        """Retourne la capacité du stock de pellets en kg."""
+        return self._pellet_stock_capacity
+    
+    def set_pellet_stock_capacity(self, capacity):
+        """Définit la capacité du stock de pellets en kg."""
+        _LOGGER.debug(f"set_pellet_stock_capacity(): {capacity}")
+        self._pellet_stock_capacity = float(capacity)
+        # Ajuster le stock actuel si nécessaire
+        if self._pellet_stock > self._pellet_stock_capacity:
+            self._pellet_stock = self._pellet_stock_capacity
+    
+    def get_pellet_stock(self):
+        """Retourne le stock actuel de pellets en kg."""
+        # Calculer la consommation depuis la dernière mise à jour
+        consumption = self.get_stove_consumption() or 0
+        last_consumption = getattr(self, '_last_consumption', consumption)
+        
+        # Si c'est la première fois ou s'il y a eu une réinitialisation du compteur
+        if not hasattr(self, '_last_consumption') or consumption < last_consumption:
+            self._last_consumption = consumption
+            return self._pellet_stock
+        
+        # Calculer la différence de consommation et l'appliquer au stock
+        consumed = consumption - last_consumption
+        self._pellet_stock = max(0, self._pellet_stock - consumed)
+        self._last_consumption = consumption
+        
+        return self._pellet_stock
+    
+    def reset_pellet_stock(self):
+        """Réinitialise le stock de pellets à la capacité maximale."""
+        _LOGGER.info(f"Resetting pellet stock to {self._pellet_stock_capacity}kg")
+        self._pellet_stock = self._pellet_stock_capacity
+        # Enregistrer la consommation actuelle comme référence
+        self._last_consumption = self.get_stove_consumption() or 0
+        
+    def get_pellet_remaining_percentage(self):
+        """Retourne le pourcentage de pellets restants."""
+        if self._pellet_stock_capacity > 0:
+            return (self.get_pellet_stock() / self._pellet_stock_capacity) * 100
+        return 0

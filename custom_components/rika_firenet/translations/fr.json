@@ -26,7 +26,8 @@
           "climate": "Climate activé",
           "sensor": "Sensor activé",
           "switch": "Switch activé",
-          "number": "Number activé"
+          "number": "Number activé",
+          "button": "Button activé"
         }
       }
     }
@@ -57,6 +58,12 @@
           "error": "Erreur",
           "empty_tank": "Réservoir vide"
         }
+      },
+      "pellet stock": {
+        "name": "Stock de pellets"
+      },
+      "pellet remaining": {
+        "name": "Pourcentage de pellets restants"
       }
     },
     "climate": {
@@ -70,6 +77,16 @@
           "comfort": "Confort",
           "none": "Normal"
         }
+      }
+    },
+    "number": {
+      "pellet stock capacity": {
+        "name": "Capacité du réservoir de pellets"
+      }
+    },
+    "button": {
+      "reset_pellet_stock": {
+        "name": "Réinitialiser le stock de pellets"
       }
     }
   }

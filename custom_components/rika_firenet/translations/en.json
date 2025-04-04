@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Rika Firenet",
-        "description": "Setup integration with Rika Firenet",
+        "description": "Setup Rika Firenet integration",
         "data": {
           "username": "Username",
           "password": "Password"
@@ -14,19 +14,20 @@
       "auth": "Username/Password is wrong."
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed."
+      "single_instance_allowed": "Only a single instance of Rika Firenet integration is allowed."
     }
   },
   "options": {
     "step": {
       "user": {
         "data": {
-          "defaultTemperature": "Default temperature",
-          "defaultScanInterval": "Default scan interval (15 seconds)",
+          "defaultTemperature": "Default Temperature",
+          "defaultScanInterval": "Default Scan Interval (15 seconds)",
           "climate": "Climate enabled",
           "sensor": "Sensor enabled",
           "switch": "Switch enabled",
-          "number": "Number enabled"
+          "number": "Number enabled",
+          "button": "Button enabled"
         }
       }
     }
@@ -36,27 +37,33 @@
       "stove status": {
         "state": {
           "frost_protection": "Frost protection",
-          "stove_off": "Stove off",
+          "stove_off": "Off",
           "standby": "Standby",
           "external_request": "External request",
-          "sub_state_unknown": "Substate unknown",
-          "ignition_on": "Ignition on",
+          "sub_state_unknown": "Unknown sub state",
+          "ignition_on": "Ignition",
           "starting_up": "Starting up",
           "running": "Running",
-          "big_clean": "Big clean",
-          "clean": "Clean",
+          "big_clean": "Deep cleaning",
+          "clean": "Cleaning",
           "burn_off": "Burn off",
           "split_log_check": "Split log check",
           "split_log_mode": "Split log mode",
-          "split_log_ecomode": "Split log eco mode",
+          "split_log_ecomode": "Split log ecomode",
           "split_log_refuel": "Split log refuel",
-          "split_log_stop_refuel": "Split log stop refuel",
+          "split_log_stop_refuel": "Do not refill",
           "unknown": "Unknown",
           "offline": "Offline",
           "smoke_fan": "Error smoke fan",
           "error": "Error",
           "empty_tank": "Empty tank"
         }
+      },
+      "pellet stock": {
+        "name": "Pellet Stock"
+      },
+      "pellet remaining": {
+        "name": "Pellet Remaining Percentage"
       }
     },
     "climate": {
@@ -70,6 +77,16 @@
           "comfort": "Comfort",
           "none": "Normal"
         }
+      }
+    },
+    "number": {
+      "pellet stock capacity": {
+        "name": "Pellet Tank Capacity"
+      }
+    },
+    "button": {
+      "reset_pellet_stock": {
+        "name": "Reset Pellet Stock"
       }
     }
   }

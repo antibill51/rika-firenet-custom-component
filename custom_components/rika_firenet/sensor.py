@@ -25,6 +25,8 @@ SENSOR_ATTRIBUTES = {
     "sub state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_sub_state"},
     "statusError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_error"},
     "statusSubError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_sub_error"},
+    "pellet stock": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "command": "get_pellet_stock"},
+    "pellet remaining": {"unit": PERCENTAGE, "icon": "mdi:progress-check", "command": "get_pellet_remaining_percentage"},
 }
 
 
@@ -50,7 +52,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "main state",
             "sub state",
             "statusError",
-            "statusSubError"
+            "statusSubError",
+            "pellet stock",
+            "pellet remaining"
         ]
 
         if RikaFirenetStove.is_logRuntimePossible(stove):
