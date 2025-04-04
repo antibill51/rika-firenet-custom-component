@@ -48,5 +48,17 @@ class ResetPelletStockButton(RikaFirenetEntity, ButtonEntity):
             self._stove.reset_pellet_stock
         )
         
+        # Sauvegarder immédiatement les données mises à jour
+        await self.hass.async_add_executor_job(
+            self.coordinator._save_pellet_data
+        )
+        
         # Forcer la mise à jour des entités après la réinitialisation
-        await self.coordinator.async_request_refresh() 
+        await self.coordinator.async_request_refresh()
+        
+        # Notifier l'utilisateur que le stock a été réinitialisé
+        self.hass.components.persistent_notification.create(
+            f"Le stock de pellets a été réinitialisé à {self._stove.get_pellet_stock_capacity()} kg.",
+            title="Stock de Pellets Réinitialisé",
+            notification_id=f"pellet_stock_reset_{self._stove.get_id()}"
+        ) 

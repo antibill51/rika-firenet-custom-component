@@ -76,6 +76,8 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, sensor):
         super().__init__(config_entry, stove, coordinator, sensor)
         self._sensor = sensor
+        # État local pour les capteurs qui doivent être mis à jour même sans données externes
+        self._state = None
 
     @property
     def unique_id(self):
@@ -83,7 +85,27 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
 
     @property
     def state(self):
-        return getattr(self._stove, f"{SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")}")()
+        # Si c'est un capteur de stock de pellets, nous forçons le calcul
+        if self._sensor == "pellet stock":
+            # Force le calcul du stock actuel
+            return self._stove.get_pellet_stock()
+        elif self._sensor == "pellet remaining":
+            # Force le calcul du pourcentage
+            return self._stove.get_pellet_remaining_percentage()
+        else:
+            # Comportement standard pour les autres capteurs
+            return getattr(self._stove, f"{SENSOR_ATTRIBUTES.get(self._sensor, {}).get('command')}")()
+
+    @property
+    def extra_state_attributes(self):
+        """Retourne des attributs supplémentaires pour le capteur."""
+        if self._sensor == "pellet stock":
+            return {
+                "capacity": self._stove.get_pellet_stock_capacity(),
+                "last_consumption": getattr(self._stove, '_last_consumption', 0),
+                "consumption": self._stove.get_stove_consumption() or 0
+            }
+        return None
 
     @property
     def unit_of_measurement(self):

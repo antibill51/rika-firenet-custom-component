@@ -21,6 +21,8 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         self._number_fail = 0
         self._NeedSend = False
         self.platforms = []
+        # Storage pour les données de pellets
+        self._pellet_data = {}
 
         if not config_flow:
             super().__init__(
@@ -41,6 +43,8 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def setup(self):
         _LOGGER.info("Setting up coordinator")
         self._stoves = self.setup_stoves()
+        # Charger les données persistantes
+        self._load_pellet_data()
 
     def get_stoves(self):
         return self._stoves
@@ -94,6 +98,53 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                 stoves.append(stove)
         return stoves
 
+    def _load_pellet_data(self):
+        """Charge les données persistantes de pellets depuis le stockage de Home Assistant."""
+        try:
+            # Essayer de charger les données depuis la persistance de Home Assistant
+            storage_file = self.hass.config.path(f"{DOMAIN}_pellet_data.json")
+            import json
+            import os
+            if os.path.exists(storage_file):
+                with open(storage_file, 'r') as f:
+                    self._pellet_data = json.load(f)
+                    _LOGGER.info(f"Loaded pellet data from storage: {self._pellet_data}")
+                    
+                # Appliquer les données chargées aux poêles
+                for stove in self._stoves:
+                    stove_id = stove.get_id()
+                    if stove_id in self._pellet_data:
+                        data = self._pellet_data[stove_id]
+                        stove._pellet_stock = data.get('stock', stove._pellet_stock_capacity)
+                        stove._pellet_stock_capacity = data.get('capacity', 15)
+                        stove._last_consumption = data.get('last_consumption', 0)
+                        _LOGGER.info(f"Restored pellet data for stove {stove_id}: Stock={stove._pellet_stock}, Capacity={stove._pellet_stock_capacity}")
+        except Exception as e:
+            _LOGGER.error(f"Failed to load pellet data: {e}")
+    
+    def _save_pellet_data(self):
+        """Sauvegarde les données de pellets pour persistance."""
+        try:
+            # Récupérer les données à sauvegarder
+            data_to_save = {}
+            for stove in self._stoves:
+                stove_id = stove.get_id()
+                data_to_save[stove_id] = {
+                    'stock': stove._pellet_stock,
+                    'capacity': stove._pellet_stock_capacity,
+                    'last_consumption': getattr(stove, '_last_consumption', 0)
+                }
+            
+            # Sauvegarder dans un fichier
+            import json
+            storage_file = self.hass.config.path(f"{DOMAIN}_pellet_data.json")
+            with open(storage_file, 'w') as f:
+                json.dump(data_to_save, f)
+            
+            _LOGGER.debug(f"Saved pellet data to storage: {data_to_save}")
+        except Exception as e:
+            _LOGGER.error(f"Failed to save pellet data: {e}")
+
     def update(self):
         _LOGGER.debug("Update triggered by timeout")
 
@@ -107,6 +158,9 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug('statusMainState=6 and OnOff=on, restarting stove')
                 stove.set_stove_on_off(False)
                 stove.set_stove_on_off(True)
+                
+        # Après chaque mise à jour, sauvegarder les données de pellets
+        self._save_pellet_data()
 
     def set_stove_controls(self, stove_id, controls):
         _LOGGER.debug("set_stove_control data: " + str(controls))
@@ -484,17 +538,37 @@ class RikaFirenetStove:
         """Retourne le stock actuel de pellets en kg."""
         # Calculer la consommation depuis la dernière mise à jour
         consumption = self.get_stove_consumption() or 0
-        last_consumption = getattr(self, '_last_consumption', consumption)
         
-        # Si c'est la première fois ou s'il y a eu une réinitialisation du compteur
-        if not hasattr(self, '_last_consumption') or consumption < last_consumption:
+        # Ajouter du débogage pour comprendre les valeurs
+        _LOGGER.debug(f"Current consumption: {consumption}, Capacity: {self._pellet_stock_capacity}")
+        
+        # Si c'est la première fois qu'on appelle cette méthode, initialiser last_consumption
+        if not hasattr(self, '_last_consumption'):
+            _LOGGER.info(f"Initializing pellet stock tracking with consumption: {consumption}")
+            self._last_consumption = consumption
+            # Stocker aussi le moment où on a commencé à suivre
+            self._last_consumption_time = datetime.now()
+            return self._pellet_stock
+            
+        # Ajouter du débogage pour voir la différence
+        _LOGGER.debug(f"Last consumption: {self._last_consumption}, Difference: {consumption - self._last_consumption}")
+        
+        # S'il y a eu une réinitialisation du compteur sur le poêle ou si la valeur a diminué
+        if consumption < self._last_consumption:
+            _LOGGER.info(f"Consumption counter reset or decreased: {self._last_consumption} -> {consumption}")
             self._last_consumption = consumption
             return self._pellet_stock
-        
+            
         # Calculer la différence de consommation et l'appliquer au stock
-        consumed = consumption - last_consumption
-        self._pellet_stock = max(0, self._pellet_stock - consumed)
-        self._last_consumption = consumption
+        consumed = consumption - self._last_consumption
+        
+        # Ne mettre à jour que si la consommation a changé de manière significative
+        if consumed > 0.01:  # 10 grammes minimum pour éviter les erreurs de précision
+            _LOGGER.info(f"Pellet consumed: {consumed}kg, Remaining stock: {self._pellet_stock - consumed}kg")
+            self._pellet_stock = max(0, self._pellet_stock - consumed)
+            self._last_consumption = consumption
+            # Mettre à jour le temps de la dernière consommation
+            self._last_consumption_time = datetime.now()
         
         return self._pellet_stock
     
@@ -502,9 +576,17 @@ class RikaFirenetStove:
         """Réinitialise le stock de pellets à la capacité maximale."""
         _LOGGER.info(f"Resetting pellet stock to {self._pellet_stock_capacity}kg")
         self._pellet_stock = self._pellet_stock_capacity
-        # Enregistrer la consommation actuelle comme référence
-        self._last_consumption = self.get_stove_consumption() or 0
         
+        # Enregistrer la consommation actuelle comme référence
+        current_consumption = self.get_stove_consumption() or 0
+        self._last_consumption = current_consumption
+        self._last_consumption_time = datetime.now()
+        
+        _LOGGER.info(f"Reset complete. Reference consumption: {current_consumption}kg")
+        
+        # Forcer une mise à jour du state pour que Home Assistant prenne en compte le changement
+        self.sync_state()
+
     def get_pellet_remaining_percentage(self):
         """Retourne le pourcentage de pellets restants."""
         if self._pellet_stock_capacity > 0:
