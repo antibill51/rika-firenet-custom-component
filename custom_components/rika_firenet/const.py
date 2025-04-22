@@ -15,7 +15,8 @@ CLIMATE = "climate"
 SENSOR = "sensor"
 SWITCH = "switch"
 NUMBER = "number"
-PLATFORMS = [CLIMATE, SENSOR, SWITCH, NUMBER]
+BUTTON = "button"
+PLATFORMS = [CLIMATE, SENSOR, SWITCH, NUMBER, BUTTON]
 
 # Types
 

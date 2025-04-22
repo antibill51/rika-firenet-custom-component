@@ -23,7 +23,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "heating power",
             "temperature offset",
             "set back temperature",
-            "set frost protection temperature"
+            "set frost protection temperature",
+            "pellet stock capacity"
         ]
         # Ajout de paramètres pour les poêles multi-air
         if RikaFirenetStove.is_multiAir1(stove):
@@ -74,6 +75,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return 4
         elif self._number == "temperature offset":
             return -4
+        elif self._number == "pellet stock capacity":
+            return 1
         return 0
 
     @property
@@ -96,6 +99,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return 10
         elif self._number == "temperature offset":
             return 4
+        elif self._number == "pellet stock capacity":
+            return 50
         return 100
 
     @property
@@ -118,6 +123,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return 1
         elif self._number == "temperature offset":
             return 0.1
+        elif self._number == "pellet stock capacity":
+            return 0.5
         return 10
 
     @property
@@ -140,6 +147,8 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return self._stove.get_frost_protection_temperature()
         elif self._number == "temperature offset":
             return self._stove.get_temperatureOffset()
+        elif self._number == "pellet stock capacity":
+            return self._stove.get_pellet_stock_capacity()
 
     @property
     def native_unit_of_measurement(self):
@@ -155,11 +164,15 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return UnitOfTemperature.CELSIUS
         elif self._number == "temperature offset":
             return UnitOfTemperature.CELSIUS
+        elif self._number == "pellet stock capacity":
+            return "kg"
 
     @property
     def icon(self):
         if "temperature" in self._number:
             return "mdi:thermometer"
+        elif self._number == "pellet stock capacity":
+            return "mdi:weight-kilogram"
         return "mdi:speedometer"
 
     def set_native_value(self, value: float) -> None:
@@ -182,4 +195,6 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
             return self._stove.set_frost_protection_temperature(int(value))
         elif self._number == "temperature offset":
             return self._stove.set_temperatureOffset(value)
+        elif self._number == "pellet stock capacity":
+            return self._stove.set_pellet_stock_capacity(value)
         self.schedule_update_ha_state()
