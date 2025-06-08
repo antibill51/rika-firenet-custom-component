@@ -55,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     except Exception as ex:
         _LOGGER.exception("Unexpected error during Rika Firenet setup: %s", ex)
-        return ConfigEntryNotReady
+        raise ConfigEntryNotReady from ex # Re-raise with original exception
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 

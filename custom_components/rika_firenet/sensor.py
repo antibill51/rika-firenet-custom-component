@@ -24,6 +24,7 @@ SENSOR_ATTRIBUTES = {
     "main state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_main_state"},
     "sub state": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_sub_state"},
     "statusError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_error"},
+    "statusWarning": {"icon": "mdi:alert-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_warning"},
     "statusSubError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_sub_error"},
 }
 
@@ -50,12 +51,13 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "main state",
             "sub state",
             "statusError",
-            "statusSubError"
+            "statusSubError",
+            "statusWarning"
         ]
 
-        if RikaFirenetStove.is_logRuntimePossible(stove):
+        if stove.is_logRuntimePossible(): # Corrected: call on the stove instance
             DEVICE_SENSORS.append("stove runtime logs")
-        if RikaFirenetStove.is_airFlapsPossible(stove):
+        if stove.is_airFlapsPossible(): # Corrected: call on the stove instance
             DEVICE_SENSORS.append("airflaps")
 
         stove_entities.extend(
@@ -79,7 +81,13 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
 
     @property
     def state(self):
-        return getattr(self._stove, f"{SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")}")()
+        # Uses self._stove.get_...() which reads from self._stove._state (updated by the coordinator)
+        # or self._stove_data which is a copy of self._stove._state via the coordinator.
+        # The get methods of self._stove already include logic to handle None.
+        command = SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")
+        if command:
+            return getattr(self._stove, command)()
+        return None
 
     @property
     def unit_of_measurement(self):
