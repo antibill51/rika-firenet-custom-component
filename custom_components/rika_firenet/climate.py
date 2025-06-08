@@ -43,15 +43,21 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     _enable_turn_on_off_backwards_compatibility = False
     def __init__(self, config_entry, stove, coordinator):
         super().__init__(config_entry, stove, coordinator)
-        self._attr_translation_key = "stove_climate"  # Clé utilisée pour la traduction
+        self._attr_translation_key = "stove_climate"  # Key used for translation
 
     @property
     def entity_picture(self):
-        return self._stove.get_status_picture()
+        # Use self._stove_data if available, otherwise self._stove as a fallback
+        # or better, directly self._stove which has its own get_status_picture logic
+        return self._stove.get_status_picture() # self._stove is updated by the coordinator
 
     @property
     def current_temperature(self):
-        return self._stove.get_room_temperature()
+        if self._stove_data and 'sensors' in self._stove_data and 'inputRoomTemperature' in self._stove_data['sensors']:
+            try:
+                return float(self._stove_data['sensors']['inputRoomTemperature'])
+            except (ValueError, TypeError): return None
+        return None
 
     @property
     def min_temp(self):
@@ -69,11 +75,17 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     @property
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
-        return PRESET_COMFORT if self._get_operation_mode() == 2 else PRESET_NONE
+        # Use _stove_data to read the current state
+        op_mode = self._stove_data.get('controls', {}).get('operatingMode') if self._stove_data else None
+        return PRESET_COMFORT if op_mode == 2 else PRESET_NONE
 
     @property
     def target_temperature(self):
-        return self._stove.get_room_thermostat()
+        if self._stove_data and 'controls' in self._stove_data and 'targetTemperature' in self._stove_data['controls']:
+            try:
+                return float(self._stove_data['controls']['targetTemperature'])
+            except (ValueError, TypeError): return None
+        return None
 
     @property
     def target_temperature_step(self):
@@ -85,12 +97,21 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return self._stove.get_hvac_mode()
+        if not self._stove_data or not self._stove_data.get('controls', {}).get('onOff'):
+            return HVACMode.OFF
+        
+        op_mode = self._stove_data.get('controls', {}).get('operatingMode')
+        heating_times_active = self._stove_data.get('controls', {}).get('heatingTimesActiveForComfort')
+
+        if op_mode == 1 or (op_mode == 2 and heating_times_active): # AUTO mode (scheduled)
+            return HVACMode.AUTO
+        return HVACMode.HEAT # Manual mode (or if op_mode == 0)
 
     @property
     def hvac_action(self) -> HVACAction:
         """Return current operation ie. heat, cool, idle."""
-        return self._get_heating_state()
+        # This logic should use self._stove_data
+        return self._get_heating_state_from_data()
 
     @property
     def supported_features(self):
@@ -100,50 +121,49 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     def temperature_unit(self):
         return UnitOfTemperature.CELSIUS
 
-
-
-
-    def set_temperature(self, **kwargs):
+    async def async_set_temperature(self, **kwargs):
         temperature = int(kwargs.get(ATTR_TEMPERATURE))
         _LOGGER.debug(f'set_temperature(): {temperature}')
         if kwargs.get(ATTR_TEMPERATURE) is None:
             return
-        if not self._stove.is_stove_on():
-            return
-        # do nothing if HVAC is switched off
-        self._stove.set_stove_temperature(temperature)
-        self.schedule_update_ha_state()
+        # Checking if the stove is on can be done here or in self._stove.set_stove_temperature
+        # if not (self._stove_data and self._stove_data.get('controls', {}).get('onOff')):
+        #     _LOGGER.debug(f"Stove {self._stove.get_name()} is off, not setting temperature.")
+        #     return
+            
+        self._stove.set_stove_temperature(temperature) # Modifies the "desired" state on the stove object
+        await self.coordinator.async_request_refresh() # Asks the coordinator to send the command and refresh
 
-    def set_hvac_mode(self, hvac_mode):
-        _LOGGER.debug(f'set_hvac_mode(): {hvac_mode}')
-        self._stove.set_hvac_mode(str(hvac_mode))
-        self.schedule_update_ha_state()
+    async def async_set_hvac_mode(self, hvac_mode):
+        _LOGGER.debug(f'set_hvac_mode() for {self.name}: {hvac_mode}')
+        self._stove.set_hvac_mode(str(hvac_mode)) # Modifies the "desired" state
+        await self.coordinator.async_request_refresh()
 
-    def set_preset_mode(self, preset_mode):
+    async def async_set_preset_mode(self, preset_mode):
         """Set new preset mode."""
-        _LOGGER.debug('preset mode : ' + str(preset_mode))
+        _LOGGER.debug(f'Setting preset_mode for {self.name} to: {preset_mode}')
         if preset_mode == PRESET_COMFORT:
-            _LOGGER.debug("setting up PRESET COMFORT")
+            _LOGGER.debug("Setting PRESET_COMFORT (operatingMode 2)") # Comfort mode
             self._stove.set_stove_operation_mode(2)
-        else:
-            _LOGGER.debug("setting up PRESET NONE")
-            if self._stove.is_stove_heating_times_on():
-                self._stove.set_stove_operation_mode(1)
-            else:
-                self._stove.set_stove_operation_mode(0)
-        self.schedule_update_ha_state()
+        else: # PRESET_NONE
+            _LOGGER.debug("Setting PRESET_NONE (operatingMode based on heating times)") # No preset
+            # If heating times are active, switch to mode 1 (Auto), otherwise mode 0 (Manual)
+            # This logic is already in RikaFirenetStove's turn_heating_times_on/off
+            # For PRESET_NONE, we might want a simple manual mode (mode 0)
+            # or let the user manage via the "heating times" switch.
+            # For now, assume PRESET_NONE means "manual mode without active heating times".
+            # If heating times are active, deactivate them.
+            if self._stove.is_stove_heating_times_on(): # Checks the current state of the stove object
+                 self._stove.turn_heating_times_off() # This will set operatingMode to 0 if not already in comfort
+            else: # If not already in scheduled mode, ensure it's in manual mode (0)
+                 self._stove.set_stove_operation_mode(0)
+        await self.coordinator.async_request_refresh()
 
-    def _get_stove_status(self):
-        """Helper method to get stove status text."""
-        return self._stove.get_status_text()
-
-    def _get_operation_mode(self):
-        """Helper method to get stove operation mode."""
-        return self._stove.get_stove_operation_mode()
-
-    def _get_heating_state(self):
-        """Helper method to check if stove is heating."""
-        status = self._get_stove_status()
+    def _get_heating_state_from_data(self) -> HVACAction:
+        """Helper method to get stove heating action from coordinator data."""
+        if not self._stove_data:
+            return HVACAction.OFF # Return OFF if data is not available
+        status = self._stove.get_status_text() # get_status_text uses the internal state of the stove object, which is updated by the coordinator
         if status == "stove_off" or status == "offline":
             return HVACAction.OFF
         elif status == "standby":

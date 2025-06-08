@@ -15,11 +15,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     for stove in coordinator.get_stoves():
         stove_switches = ["on off", "heating times", "frost protection"]
 
-        if RikaFirenetStove.is_airFlapsPossible(stove):
+        if stove.is_airFlapsPossible(): # Corrected: call on the stove instance
             stove_switches.append("eco mode")
-        if RikaFirenetStove.is_multiAir1(stove):
+        if stove.is_multiAir1(): # Corrected: call on the stove instance
             stove_switches.append("convection fan1")
-        if RikaFirenetStove.is_multiAir2(stove):
+        if stove.is_multiAir2(): # Corrected: call on the stove instance
             stove_switches.append("convection fan2")
 
         stove_entities.extend(
@@ -60,51 +60,60 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
     def is_on(self):
         if self._switch_type == "on off":
             return self._stove.is_stove_on()
+        # The is_stove_* methods of self._stove read the current state
         elif self._switch_type == "convection fan1":
             return self._stove.is_stove_convection_fan1_on()
         elif self._switch_type == "convection fan2":
             return self._stove.is_stove_convection_fan2_on()
         elif self._switch_type == "heating times":
-            return self._stove.is_stove_heating_times_on()
+            return self._stove.is_stove_heating_times_on() # Utilise la logique interne de RikaFirenetStove
         elif self._switch_type == "eco mode":
             return self._stove.is_stove_eco_mode()
         elif self._switch_type == "frost protection":
             return self._stove.is_frost_protection()
 
-    def turn_on(self, **kwargs):
-        _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove._name)
-        try:
-            if self._switch_type == "on off":
-                self._stove.set_stove_on_off(True)
-            elif self._switch_type == "convection fan1":
-                self._stove.turn_convection_fan1_on_off(True)
-            elif self._switch_type == "convection fan2":
-                self._stove.turn_convection_fan2_on_off(True)
-            elif self._switch_type == "heating times":
-                self._stove.turn_heating_times_on()
-            elif self._switch_type == "eco mode":
-                self._stove.turn_on_off_eco_mode(True)
-            elif self._switch_type == "frost protection":
-                 self._stove.turn_on_off_frost_protection(True)
-            self.schedule_update_ha_state()
-        except Exception as ex:
-            _LOGGER.error("Failed to turn on '%s': %s", self._switch_type, ex)
+    async def async_turn_on(self, **kwargs) -> None:
+        """Turn the entity on."""
+        _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove.get_name())
+        # Corrected logic here
+        if self._switch_type == "on off":
+            self._stove.set_stove_on_off(True)
+        elif self._switch_type == "convection fan1":
+            self._stove.turn_convection_fan1_on_off(True)
+        elif self._switch_type == "convection fan2":
+            self._stove.turn_convection_fan2_on_off(True)
+        elif self._switch_type == "heating times":
+            self._stove.turn_heating_times_on()
+        elif self._switch_type == "eco mode":
+            self._stove.turn_on_off_eco_mode(True)
+        elif self._switch_type == "frost protection":
+            self._stove.turn_on_off_frost_protection(True)
+        else:
+            _LOGGER.warning(f"Unknown switch type '{self._switch_type}' for turn_on action.")
+            return
 
-    def turn_off(self, **kwargs):
-        _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove._name)
-        try:
-            if self._switch_type == "on off":
-                self._stove.set_stove_on_off(False)
-            elif self._switch_type == "convection fan1":
-                self._stove.turn_convection_fan1_on_off(False)
-            elif self._switch_type == "convection fan2":
-                self._stove.turn_convection_fan2_on_off(False)
-            elif self._switch_type == "heating times":
-                self._stove.turn_heating_times_off()
-            elif self._switch_type == "eco mode":
-                self._stove.turn_on_off_eco_mode(False)
-            elif self._switch_type == "frost protection":
-                 self._stove.turn_on_off_frost_protection(False)
-            self.schedule_update_ha_state()
-        except Exception as ex:
-            _LOGGER.error("Failed to turn off '%s': %s", self._switch_type, ex)
+        # The methods above on self._stove mark _controls_changed = True
+        # Ask the coordinator to send the command and refresh
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        """Turn the entity off."""
+        _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove.get_name())
+        if self._switch_type == "on off":
+            self._stove.set_stove_on_off(False)
+        elif self._switch_type == "convection fan1":
+            self._stove.turn_convection_fan1_on_off(False)
+        elif self._switch_type == "convection fan2":
+            self._stove.turn_convection_fan2_on_off(False)
+        elif self._switch_type == "heating times":
+            self._stove.turn_heating_times_off()
+        elif self._switch_type == "eco mode":
+            self._stove.turn_on_off_eco_mode(False)
+        elif self._switch_type == "frost protection":
+            self._stove.turn_on_off_frost_protection(False)
+        else:
+            _LOGGER.warning(f"Unknown switch type '{self._switch_type}' for turn_off action.")
+            return
+        # The methods above on self._stove mark _controls_changed = True
+        # Ask the coordinator to send the command and refresh
+        await self.coordinator.async_request_refresh()

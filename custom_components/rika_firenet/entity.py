@@ -21,14 +21,24 @@ class RikaFirenetEntity(CoordinatorEntity):
         self._name = f"{stove.get_name()} {suffix}" if suffix else stove.get_name()
         self._unique_id = self._generate_unique_id()
 
-        _LOGGER.debug("Created RikaFirenetEntity: name=%s, unique_id=%s", self._name, self._unique_id)
+        _LOGGER.debug("Created RikaFirenetEntity: name=%s, unique_id=%s for stove_id=%s", self._name, self._unique_id, self._stove_id)
 
     def _generate_unique_id(self):
         """Generate a unique ID for the entity."""
+        # Ensure stove_id is a string to avoid errors with .replace
+        stove_id_str = str(self._stove_id)
         if self._suffix:
             # Combine stove ID and suffix for uniqueness
-            return f"{self._stove_id}_{self._suffix}".replace(" ", "_").lower()
-        return self._stove_id.replace(" ", "_").lower()
+            return f"{stove_id_str}_{self._suffix}".replace(" ", "_").lower()
+        return stove_id_str.replace(" ", "_").lower()
+
+    @property
+    def _stove_data(self):
+        """Helper to get the specific data for this stove from the coordinator."""
+        if self.coordinator.data and self._stove_id in self.coordinator.data:
+            return self.coordinator.data[self._stove_id]
+        _LOGGER.debug(f"Stove data not found for {self._stove_id} in coordinator.data. Keys: {list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}")
+        return None
 
     @property
     def unique_id(self):
@@ -43,9 +53,19 @@ class RikaFirenetEntity(CoordinatorEntity):
     @property
     def device_info(self):
         """Return the device information."""
+        # Ensure stove_id is a string for identifiers
+        stove_id_str = str(self._stove_id)
         return {
-            "identifiers": {(DOMAIN, self._stove_id)},
+            "identifiers": {(DOMAIN, stove_id_str)},
             "name": self._stove.get_name(),
-            "model": VERSION,
-            "manufacturer": DEFAULT_NAME,
+            "manufacturer": DEFAULT_NAME, # Manufacturer name
+            "model": f"Firenet Stove ({stove_id_str})", # More specific model
+            "sw_version": VERSION, # Integration version
         }
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return (
+            super().available and self.coordinator.last_update_success and self._stove_data is not None
+        )

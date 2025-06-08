@@ -28,7 +28,7 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle a flow initialized by the user."""
         self._errors = {}
 
-        # Permettre une seule instance de l'intégration
+        # Allow only a single instance of the integration
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
 
