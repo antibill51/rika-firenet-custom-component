@@ -55,7 +55,8 @@
           "offline": "Offline",
           "smoke_fan": "Error smoke fan",
           "error": "Error",
-          "empty_tank": "Empty tank"
+          "empty_tank": "Empty tank",
+          "pellet_lid_open": "Pellet lid open"
         }
       }
     },

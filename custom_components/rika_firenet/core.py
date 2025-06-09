@@ -566,6 +566,7 @@ class RikaFirenetStove:
         frost_started = bool(self._state.get('sensors', {}).get('statusFrostStarted', False))
         statusError = self.get_status_error()
         statusSubError = self.get_status_sub_error()
+        statusWarning = self.get_status_warning()
         lastSeenMinutes = int(self._state.get('lastSeenMinutes', 99)) # Default to high value if not present
         stove_temp = self.get_stove_temperature()
         eco_mode = bool(self._state.get('controls', {}).get('ecoMode', False))
@@ -579,6 +580,8 @@ class RikaFirenetStove:
             _LOGGER.debug("statusSubError: " + str(statusSubError))
         if lastSeenMinutes > 2:
             return ["https://www.rika-firenet.com/images/status/Warning_WifiSignal.svg", "offline"]
+        if statusWarning == 2:
+            return ["https://www.rika-firenet.com/images/status/Any_Warning.svg", "pellet_lid_open"]
         if statusError == 1:
             if statusSubError == 1:
                 return ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Error.svg", "Error"]

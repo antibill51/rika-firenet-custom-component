@@ -55,7 +55,8 @@
           "offline": "Déconnecté",
           "smoke_fan": "Erreur ventil. fumée",
           "error": "Erreur",
-          "empty_tank": "Réservoir vide"
+          "empty_tank": "Réservoir vide",
+          "pellet_lid_open": "Couvercle réservoir ouvert"
         }
       }
     },

@@ -55,7 +55,8 @@
           "offline": "Offline",
           "smoke_fan": "Fehler Abgasgebläse",
           "error": "Fehler",
-          "empty_tank": "Tank leer"
+          "empty_tank": "Tank leer",
+          "pellet_lid_open": "Pelletdeckel offen"
         }
       }
     },
