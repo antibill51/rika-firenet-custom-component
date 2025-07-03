@@ -286,9 +286,14 @@ class RikaFirenetStove:
     def set_heating_times_active_for_comfort(self, active):
         _LOGGER.debug("set_heating_times_active_for_comfort(): " + str(active))
         if self._state and 'controls' in self._state:
-            self._state['controls']['onOff'] = True # Assumed: changing heating times implies stove should be on or remain on
-            self._state['controls']['heatingTimesActiveForComfort'] = bool(active)
+            controls = self._state['controls']
+            # Only turn on the stove if active is True and it's not already on
+            if active and not controls.get('onOff', False):
+                controls['onOff'] = True
+            # Update the heatingTimesActiveForComfort flag regardless of active value
+            controls['heatingTimesActiveForComfort'] = bool(active)
             self._mark_controls_changed()
+
 
     def set_room_power_request(self, power):
         _LOGGER.debug("set_room_power_request(): " + str(power))
