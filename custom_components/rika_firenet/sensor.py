@@ -76,10 +76,6 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
         self._sensor = sensor
 
     @property
-    def unique_id(self):
-        return f"{self._stove._id}_{self._sensor}".lower()
-
-    @property
     def state(self):
         # Uses self._stove.get_...() which reads from self._stove._state (updated by the coordinator)
         # or self._stove_data which is a copy of self._stove._state via the coordinator.

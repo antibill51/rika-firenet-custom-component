@@ -64,10 +64,6 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
         self._config = SWITCH_CONFIG.get(self._switch_type, {})
 
     @property
-    def unique_id(self):
-        return f"{self._stove._id}_{self._switch_type}".lower()
-
-    @property
     def translation_key(self):
         return self._switch_type
 

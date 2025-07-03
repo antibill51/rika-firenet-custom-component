@@ -70,14 +70,6 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
         self._config = NUMBER_CONFIG.get(self._number, {})
 
     @property
-    def unique_id(self):
-        # This relies on the base class RikaFirenetEntity._generate_unique_id()
-        # which uses the 'number' string as the suffix.
-        # If a different format is strictly needed, it can be overridden here,
-        # but the base class implementation should be sufficient.
-        return f"{self._stove._id}_{self._number}".lower()
-
-    @property
     def native_min_value(self) -> float:
         return self._config.get("min", DEFAULT_NUMBER_MIN)
 
