@@ -594,9 +594,8 @@ class RikaFirenetStove:
         if not self._state or not self._state.get('controls', {}).get('onOff'):
             return HVACAction.OFF
 
-        sensors = self._state.get('sensors', {})
-        main_state = sensors.get('statusMainState')
-        sub_state = sensors.get('statusSubState')
+        main_state = self.get_main_state()
+        sub_state = self.get_sub_state()
 
         # States indicating active heating (ignition, running, split log mode)
         HEATING_STATES = [2, 3, 4, 11, 13, 14, 16, 17, 20, 21, 50]
@@ -622,10 +621,24 @@ class RikaFirenetStove:
         return self.get_main_state() in [4, 5]
 
     def get_stove_consumption(self):
-        return self._state.get('sensors', {}).get('parameterFeedRateTotal') if self._state else None
+        if self._state and 'sensors' in self._state and 'parameterFeedRateTotal' in self._state['sensors']:
+            value = self._state['sensors']['parameterFeedRateTotal']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid parameterFeedRateTotal value for {self._id}: {value}")
+                return None
+        return None
 
     def get_stove_runtime_pellets(self):
-        return self._state.get('sensors', {}).get('parameterRuntimePellets') if self._state else None
+        if self._state and 'sensors' in self._state and 'parameterRuntimePellets' in self._state['sensors']:
+            value = self._state['sensors']['parameterRuntimePellets']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid parameterRuntimePellets value for {self._id}: {value}")
+                return None
+        return None
 
     def get_stove_runtime_logs(self):
         if self._state and 'sensors' in self._state and 'parameterRuntimeLogs' in self._state['sensors']:
@@ -638,7 +651,14 @@ class RikaFirenetStove:
         return None
 
     def get_pellets_before_service(self):
-        return self._state.get('sensors', {}).get('parameterFeedRateService') if self._state else None
+        if self._state and 'sensors' in self._state and 'parameterFeedRateService' in self._state['sensors']:
+            value = self._state['sensors']['parameterFeedRateService']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid parameterFeedRateService value for {self._id}: {value}")
+                return None
+        return None
 
     def get_stove_temperature(self):
         if self._state and 'sensors' in self._state and 'inputFlameTemperature' in self._state['sensors']:
@@ -677,19 +697,54 @@ class RikaFirenetStove:
         return self.get_status()[0]
     
     def get_main_state(self):
-        return self._state.get('sensors', {}).get('statusMainState') if self._state else None
+        if self._state and 'sensors' in self._state and 'statusMainState' in self._state['sensors']:
+            value = self._state['sensors']['statusMainState']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid statusMainState value for {self._id}: {value}")
+                return None
+        return None
 
     def get_sub_state(self):
-        return self._state.get('sensors', {}).get('statusSubState') if self._state else None
+        if self._state and 'sensors' in self._state and 'statusSubState' in self._state['sensors']:
+            value = self._state['sensors']['statusSubState']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid statusSubState value for {self._id}: {value}")
+                return None
+        return None
     
     def get_status_error(self):
-        return self._state.get('sensors', {}).get('statusError') if self._state else None
+        if self._state and 'sensors' in self._state and 'statusError' in self._state['sensors']:
+            value = self._state['sensors']['statusError']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid statusError value for {self._id}: {value}")
+                return None
+        return None
 
     def get_status_sub_error(self):
-        return self._state.get('sensors', {}).get('statusSubError') if self._state else None
+        if self._state and 'sensors' in self._state and 'statusSubError' in self._state['sensors']:
+            value = self._state['sensors']['statusSubError']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid statusSubError value for {self._id}: {value}")
+                return None
+        return None
     
     def get_status_warning(self):
-        return self._state.get('sensors', {}).get('statusWarning') if self._state else None
+        if self._state and 'sensors' in self._state and 'statusWarning' in self._state['sensors']:
+            value = self._state['sensors']['statusWarning']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid statusWarning value for {self._id}: {value}")
+                return None
+        return None
 
     def get_outputAirFlaps(self):
         if self._state and 'sensors' in self._state and 'outputAirFlaps' in self._state['sensors']:
