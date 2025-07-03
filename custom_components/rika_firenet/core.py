@@ -235,6 +235,15 @@ class RikaFirenetStove:
         self._controls_changed = True
         _LOGGER.debug(f"Controls marked changed for stove {self._id}")
 
+    def _set_control(self, key: str, value):
+        """Helper to set a control value and mark for update."""
+        _LOGGER.debug(f"Setting control '{key}' to '{value}' for stove {self._id}")
+        if self._state and 'controls' in self._state:
+            self._state['controls'][key] = value
+            self._mark_controls_changed()
+        else:
+            _LOGGER.warning(f"Cannot set control '{key}': stove state not available for stove {self._id}.")
+
     def sync_state(self):
         _LOGGER.debug(f"Syncing state for stove {self._id}")
         try:
@@ -254,91 +263,47 @@ class RikaFirenetStove:
 
 # Send command
     def set_temperatureOffset(self, temperature):
-        _LOGGER.debug("set_offset_temperature(): " + str(temperature))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['temperatureOffset'] = float(temperature)
-            self._mark_controls_changed()
+        self._set_control('temperatureOffset', float(temperature))
 
     def set_stove_temperature(self, temperature):
-        _LOGGER.debug("set_stove_temperature(): " + str(temperature))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['targetTemperature'] = float(temperature)
-            self._mark_controls_changed()
+        self._set_control('targetTemperature', float(temperature))
 
     def set_frost_protection_temperature(self, temperature):
-        _LOGGER.debug("set_frost_protection_temperature(): " + str(temperature))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['frostProtectionTemperature'] = int(temperature)
-            self._mark_controls_changed()
+        self._set_control('frostProtectionTemperature', int(temperature))
 
     def set_stove_set_back_temperature(self, temperature):
-        _LOGGER.debug("set_back_temperature(): " + str(temperature))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['setBackTemperature'] = float(temperature)
-            self._mark_controls_changed()
+        self._set_control('setBackTemperature', float(temperature))
 
     def set_stove_operation_mode(self, mode):
-        _LOGGER.debug("set_stove_operation_mode(): " + str(mode))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['operatingMode'] = int(mode)
-            self._mark_controls_changed()
+        self._set_control('operatingMode', int(mode))
 
     def set_heating_times_active_for_comfort(self, active):
         _LOGGER.debug("set_heating_times_active_for_comfort(): " + str(active))
         if self._state and 'controls' in self._state:
-            controls = self._state['controls']
-            # Only turn on the stove if active is True and it's not already on
-            if active and not controls.get('onOff', False):
-                controls['onOff'] = True
-            # Update the heatingTimesActiveForComfort flag regardless of active value
-            controls['heatingTimesActiveForComfort'] = bool(active)
+            self._state['controls']['onOff'] = True # Assumed: changing heating times implies stove should be on or remain on
+            self._state['controls']['heatingTimesActiveForComfort'] = bool(active)
             self._mark_controls_changed()
-
 
     def set_room_power_request(self, power):
-        _LOGGER.debug("set_room_power_request(): " + str(power))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['RoomPowerRequest'] = int(power)
-            self._mark_controls_changed()
+        self._set_control('RoomPowerRequest', int(power))
 
     def set_heating_power(self, power):
-        _LOGGER.debug("set_heating_power(): " + str(power))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['heatingPower'] = int(power)
-            self._mark_controls_changed()
-
-    # ... Repeat the if self._state and 'controls' in self._state: and self._mark_controls_changed()
-    # for all set_convection_fan* methods ...
+        self._set_control('heatingPower', int(power))
 
     def set_convection_fan1_level(self, level):
-        _LOGGER.debug(f"set_convection_fan1_level() for {self._id}: {level}")
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan1Level'] = int(level)
-            self._mark_controls_changed()
+        self._set_control('convectionFan1Level', int(level))
 
     def set_convection_fan1_area(self, area):
-        _LOGGER.debug(f"set_convection_fan1_area() for {self._id}: {area}")
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan1Area'] = int(area)
-            self._mark_controls_changed()
+        self._set_control('convectionFan1Area', int(area))
 
     def set_convection_fan2_level(self, level):
-        _LOGGER.debug(f"set_convection_fan2_level() for {self._id}: {level}")
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan2Level'] = int(level)
-            self._mark_controls_changed()
+        self._set_control('convectionFan2Level', int(level))
 
     def set_convection_fan2_area(self, area):
-        _LOGGER.debug(f"set_convection_fan2_area() for {self._id}: {area}")
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan2Area'] = int(area)
-            self._mark_controls_changed()
+        self._set_control('convectionFan2Area', int(area))
 
     def set_stove_on_off(self, on_off):
-        _LOGGER.debug(f"Setting stove {self._id} On/Off: {on_off}")
-        if self._state and 'controls' in self._state:
-            self._state['controls']['onOff'] = bool(on_off)
-            self._mark_controls_changed()
+        self._set_control('onOff', bool(on_off))
 
     def turn_heating_times_on(self): 
         if self._state and 'controls' in self._state:
@@ -357,28 +322,16 @@ class RikaFirenetStove:
             self._mark_controls_changed()
 
     def turn_convection_fan1_on_off(self, on_off=True):
-        _LOGGER.debug("turn_convection_fan1_on_off(): " + str(on_off))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan1Active'] = bool(on_off)
-            self._mark_controls_changed()
+        self._set_control('convectionFan1Active', bool(on_off))
 
     def turn_convection_fan2_on_off(self, on_off=True):
-        _LOGGER.debug("turn_convection_fan2_on_off(): " + str(on_off))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['convectionFan2Active'] = bool(on_off)
-            self._mark_controls_changed()
+        self._set_control('convectionFan2Active', bool(on_off))
 
     def turn_on_off_eco_mode(self, on_off=False):
-        _LOGGER.info("Set Eco Mode: " + str(on_off))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['ecoMode'] = bool(on_off)
-            self._mark_controls_changed()
+        self._set_control('ecoMode', bool(on_off))
 
     def turn_on_off_frost_protection(self, on_off=False):
-        _LOGGER.info("Set Frost Protection: " + str(on_off))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['frostProtectionActive'] = bool(on_off)
-            self._mark_controls_changed()
+        self._set_control('frostProtectionActive', bool(on_off))
 
 # End
 
