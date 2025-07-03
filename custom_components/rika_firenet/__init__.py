@@ -59,17 +59,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Forward entry setups for all platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Register platforms dynamically
-    for platform in PLATFORMS:
-        if entry.options.get(platform, True):
-            try:
-                coordinator.platforms.append(platform)
-                _LOGGER.info("Platform '%s' initialized.", platform)
-            except Exception as ex:
-                _LOGGER.error("Failed to initialize platform '%s': %s", platform, ex)
+    # Filter platforms based on options and forward the setup.
+    enabled_platforms = [
+        platform for platform in PLATFORMS if entry.options.get(platform, True)
+    ]
+    await hass.config_entries.async_forward_entry_setups(entry, enabled_platforms)
 
     entry.add_update_listener(_async_options_updated)
     return True
