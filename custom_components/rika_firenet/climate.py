@@ -110,8 +110,34 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     @property
     def hvac_action(self) -> HVACAction:
         """Return current operation ie. heat, cool, idle."""
-        # This logic should use self._stove_data
-        return self._get_heating_state_from_data()
+        # First, check if the stove is commanded to be off. This is the most reliable state.
+        if not self._stove_data or not self._stove_data.get('controls', {}).get('onOff'):
+            return HVACAction.OFF
+
+        sensors = self._stove_data.get('sensors', {})
+        main_state = sensors.get('statusMainState')
+        sub_state = sensors.get('statusSubState')
+
+        # States indicating active heating (ignition, running, split log mode)
+        HEATING_STATES = [2, 3, 4, 11, 13, 14, 16, 17, 20, 21, 50]
+        # States indicating the stove is on but not actively producing heat (standby, cleaning, burn-off)
+        IDLE_STATES = [5, 6]
+
+        if main_state in HEATING_STATES:
+            return HVACAction.HEATING
+        
+        elif main_state in IDLE_STATES:
+            return HVACAction.IDLE
+
+        elif main_state == 1:  # Special handling for standby/off states
+            if sub_state == 0:  # Explicitly off
+                return HVACAction.OFF
+            # For other sub-states (1=standby, 2=external_request, 3=standby),
+            # the stove is on but waiting. IDLE is the most appropriate action.
+            return HVACAction.IDLE
+
+        # Default to OFF for any other unknown or unhandled state.
+        return HVACAction.OFF # Default for unknown or off states
 
     @property
     def supported_features(self):
@@ -158,14 +184,3 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
             else: # If not already in scheduled mode, ensure it's in manual mode (0)
                  self._stove.set_stove_operation_mode(0)
         await self.coordinator.async_request_refresh()
-
-    def _get_heating_state_from_data(self) -> HVACAction:
-        """Helper method to get stove heating action from coordinator data."""
-        if not self._stove_data:
-            return HVACAction.OFF # Return OFF if data is not available
-        status = self._stove.get_status_text() # get_status_text uses the internal state of the stove object, which is updated by the coordinator
-        if status == "stove_off" or status == "offline":
-            return HVACAction.OFF
-        elif status == "standby":
-            return HVACAction.IDLE
-        return HVACAction.HEATING
