@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
-from homeassistant.components.climate.const import HVACMode, PRESET_COMFORT
+from homeassistant.components.climate.const import HVACAction, HVACMode, PRESET_COMFORT, PRESET_NONE
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .const import DOMAIN
 
@@ -525,6 +525,31 @@ class RikaFirenetStove:
             return HVACMode.AUTO
         # If on but not in AUTO mode (scheduled), then it's HEAT (manual)
         return HVACMode.HEAT
+
+    def get_hvac_action(self) -> HVACAction:
+        """Return current operation ie. heat, cool, idle."""
+        # First, check if the stove is commanded to be off. This is the most reliable state.
+        if not self._state or not self._state.get('controls', {}).get('onOff'):
+            return HVACAction.OFF
+
+        sensors = self._state.get('sensors', {})
+        main_state = sensors.get('statusMainState')
+        sub_state = sensors.get('statusSubState')
+
+        # States indicating active heating (ignition, running, split log mode)
+        HEATING_STATES = [2, 3, 4, 11, 13, 14, 16, 17, 20, 21, 50]
+        # States indicating the stove is on but not actively producing heat (standby, cleaning, burn-off)
+        IDLE_STATES = [5, 6]
+
+        if main_state in HEATING_STATES:
+            return HVACAction.HEATING
+        elif main_state in IDLE_STATES:
+            return HVACAction.IDLE
+        elif main_state == 1:  # Special handling for standby/off states
+            if sub_state == 0:  # Explicitly off
+                return HVACAction.OFF
+            return HVACAction.IDLE # Other sub-states are standby
+        return HVACAction.OFF # Default for unknown or off states
 
     def get_preset_mode(self):
         """Return the current preset mode."""
