@@ -29,8 +29,8 @@ class RikaFirenetEntity(CoordinatorEntity):
         stove_id_str = str(self._stove_id)
         if self._suffix:
             # Combine stove ID and suffix for uniqueness
-            return f"{stove_id_str}_{self._suffix}".replace(" ", "_").lower()
-        return stove_id_str.replace(" ", "_").lower()
+            return f"{stove_id_str}_{self._suffix}".lower()
+        return stove_id_str.lower()
 
     @property
     def unique_id(self):
