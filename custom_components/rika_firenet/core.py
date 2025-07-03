@@ -263,7 +263,7 @@ STATUS_RULES = [
      lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_refuel"]),
     (lambda s: s.get_main_state() == 21 and s.get_sub_state() == 12 and s.get_stove_temperature() is not None and s.get_stove_temperature() < 300,
      lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_stop_refuel"]),
-    (lambda s: s.get_main_state() == 20 and s._state.get('controls', {}).get('ecoMode', False),
+    (lambda s: s.get_main_state() == 20 and s.is_stove_eco_mode(),
      lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_ecomode"]),
     (lambda s: s.get_main_state() in [20, 21],
      lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_mode"]),
