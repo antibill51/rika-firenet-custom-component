@@ -440,16 +440,22 @@ class RikaFirenetStove:
 
     def get_temperatureOffset(self):
         if self._state and 'controls' in self._state and 'temperatureOffset' in self._state['controls']:
+            value = self._state['controls']['temperatureOffset']
             try:
-                return float(self._state['controls']['temperatureOffset'])
-            except (ValueError, TypeError): return None
+                return float(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid temperatureOffset value for {self._id}: {value}")
+                return None
         return None
 
     def get_room_thermostat(self):
         if self._state and 'controls' in self._state and 'targetTemperature' in self._state['controls']:
+            value = self._state['controls']['targetTemperature']
             try:
-                return float(self._state['controls']['targetTemperature'])
-            except (ValueError, TypeError): return None
+                return float(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid targetTemperature value for {self._id}: {value}")
+                return None
         return None
 
     def is_stove_eco_mode(self):
@@ -459,7 +465,14 @@ class RikaFirenetStove:
         return bool(self._state.get('controls', {}).get('frostProtectionActive')) if self._state else False
 
     def get_stove_set_back_temperature(self):
-        return float(self._state.get('controls', {}).get('setBackTemperature', 0.0)) if self._state else None
+        if self._state and 'controls' in self._state and 'setBackTemperature' in self._state['controls']:
+            value = self._state['controls']['setBackTemperature']
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid setBackTemperature value for {self._id}: {value}")
+                return None
+        return None
 
     def get_stove_operation_mode(self):
         return self._state.get('controls', {}).get('operatingMode') if self._state else None
@@ -573,8 +586,14 @@ class RikaFirenetStove:
         return self._state.get('sensors', {}).get('parameterRuntimePellets') if self._state else None
 
     def get_stove_runtime_logs(self):
-        minutes = self._state.get('sensors', {}).get('parameterRuntimeLogs') if self._state else None
-        return (minutes // 60) if minutes is not None else None
+        if self._state and 'sensors' in self._state and 'parameterRuntimeLogs' in self._state['sensors']:
+            value = self._state['sensors']['parameterRuntimeLogs']
+            try:
+                return int(value) // 60
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid parameterRuntimeLogs value for {self._id}: {value}")
+                return None
+        return None
 
     def get_pellets_before_service(self):
         return self._state.get('sensors', {}).get('parameterFeedRateService') if self._state else None
@@ -610,8 +629,14 @@ class RikaFirenetStove:
         return self._state.get('sensors', {}).get('statusWarning') if self._state else None
 
     def get_outputAirFlaps(self):
-        flaps = self._state.get('sensors', {}).get('outputAirFlaps') if self._state else None
-        return (float(flaps / 10)) if flaps is not None else None
+        if self._state and 'sensors' in self._state and 'outputAirFlaps' in self._state['sensors']:
+            value = self._state['sensors']['outputAirFlaps']
+            try:
+                return float(value) / 10.0
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid outputAirFlaps value for {self._id}: {value}")
+                return None
+        return None
     
     def is_airFlapsPossible(self):
         return bool(self._state.get('stoveFeatures', {}).get('airFlaps')) if self._state else False
@@ -626,7 +651,14 @@ class RikaFirenetStove:
         return bool(self._state.get('stoveFeatures', {}).get('multiAir2')) if self._state else False
 
     def get_frost_protection_temperature(self):
-        return int(self._state.get('controls', {}).get('frostProtectionTemperature', 0)) if self._state else None
+        if self._state and 'controls' in self._state and 'frostProtectionTemperature' in self._state['controls']:
+            value = self._state['controls']['frostProtectionTemperature']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid frostProtectionTemperature value for {self._id}: {value}")
+                return None
+        return None
 
     def get_status(self):
         """Return the status image and text key based on a set of rules."""
