@@ -207,6 +207,56 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         _LOGGER.error(f'Failed to update stove {stove_id} controls after 3 attempts')
         return None # Indicate persistent failure
 
+STATUS_RULES = [
+    # Priority 1: Errors, connectivity, and critical warnings
+    (lambda s: s._state.get('lastSeenMinutes', 99) > 2,
+     lambda s: ["https://www.rika-firenet.com/images/status/Warning_WifiSignal.svg", "offline"]),
+    (lambda s: s.get_status_warning() == 2,
+     lambda s: ["https://www.rika-firenet.com/images/status/Any_Warning.svg", "pellet_lid_open"]),
+    (lambda s: s.get_status_error() == 1 and s.get_status_sub_error() == 1,
+     lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Error.svg", "Error"]),
+    (lambda s: s.get_status_error() == 1 and s.get_status_sub_error() == 2,
+     lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Empty.svg", "empty_tank"]),
+    (lambda s: s.get_status_error() == 1,
+     lambda s: ["/", "statusSubError" + str(s.get_status_sub_error())]),
+    (lambda s: s.get_status_error() == 32768,
+     lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_smoke_fan.svg", "smoke_fan"]),
+    (lambda s: s._state.get('sensors', {}).get('statusFrostStarted', False),
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Freeze.svg", "frost_protection"]),
+
+    # Priority 2: Main operational states
+    (lambda s: s.get_main_state() == 1 and s.get_sub_state() == 0,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "stove_off"]),
+    (lambda s: s.get_main_state() == 1 and s.get_sub_state() in [1, 2, 3],
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Standby.svg", "external_request" if s.get_sub_state() == 2 else "standby"]),
+    (lambda s: s.get_main_state() == 1,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "sub_state_unknown"]),
+    (lambda s: s.get_main_state() == 2,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Ignition.svg", "ignition_on"]),
+    (lambda s: s.get_main_state() == 3,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Ignition.svg", "starting_up"]),
+    (lambda s: s.get_main_state() == 4,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Control.svg", "running"]),
+    (lambda s: s.get_main_state() == 5 and s.get_sub_state() in [3, 4],
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Clean.svg", "big_clean"]),
+    (lambda s: s.get_main_state() == 5,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_Clean.svg", "clean"]),
+    (lambda s: s.get_main_state() == 6,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_BurnOff.svg", "burn_off"]),
+
+    # Priority 3: Special modes (e.g., split log)
+    (lambda s: s.get_main_state() in [11, 13, 14, 16, 17, 50],
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_check"]),
+    (lambda s: s.get_main_state() == 21 and s.get_sub_state() == 12 and s.get_stove_temperature() is not None and 300 <= s.get_stove_temperature() <= 350,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_refuel"]),
+    (lambda s: s.get_main_state() == 21 and s.get_sub_state() == 12 and s.get_stove_temperature() is not None and s.get_stove_temperature() < 300,
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_stop_refuel"]),
+    (lambda s: s.get_main_state() == 20 and s._state.get('controls', {}).get('ecoMode', False),
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_ecomode"]),
+    (lambda s: s.get_main_state() in [20, 21],
+     lambda s: ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_mode"]),
+]
+
 class RikaFirenetStove:
     def __init__(self, coordinator, stove_id, name):
         self._coordinator = coordinator
@@ -516,71 +566,12 @@ class RikaFirenetStove:
         return int(self._state.get('controls', {}).get('frostProtectionTemperature', 0)) if self._state else None
 
     def get_status(self):
-        if not self._state: # If state is not available
+        """Return the status image and text key based on a set of rules."""
+        if not self._state:
             return ["https://www.rika-firenet.com/images/status/Warning_WifiSignal.svg", "unavailable"]
 
-        main_state = self.get_main_state()
-        sub_state = self.get_sub_state()
-        frost_started = bool(self._state.get('sensors', {}).get('statusFrostStarted', False))
-        statusError = self.get_status_error()
-        statusSubError = self.get_status_sub_error()
-        statusWarning = self.get_status_warning()
-        lastSeenMinutes = int(self._state.get('lastSeenMinutes', 99)) # Default to high value if not present
-        stove_temp = self.get_stove_temperature()
-        eco_mode = bool(self._state.get('controls', {}).get('ecoMode', False))
+        for condition, result_func in STATUS_RULES:
+            if condition(self):
+                return result_func(self)
 
-# DEBUG for errors
-        if lastSeenMinutes != 0:
-            _LOGGER.debug("lastSeenMinutes: " + str(lastSeenMinutes))
-        if statusError != 0:
-            _LOGGER.debug("statusError: " + str(statusError))
-        if statusSubError != 0:
-            _LOGGER.debug("statusSubError: " + str(statusSubError))
-        if lastSeenMinutes > 2:
-            return ["https://www.rika-firenet.com/images/status/Warning_WifiSignal.svg", "offline"]
-        if statusWarning == 2:
-            return ["https://www.rika-firenet.com/images/status/Any_Warning.svg", "pellet_lid_open"]
-        if statusError == 1:
-            if statusSubError == 1:
-                return ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Error.svg", "Error"]
-            elif statusSubError == 2:
-                return ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Empty.svg", "empty_tank"]
-            return ["/", "statusSubError" + str(statusSubError)]
-        if statusError == 32768:
-            return ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_smoke_fan.svg", "smoke_fan"]
-        if frost_started:
-            return ["https://www.rika-firenet.com/images/status/Visu_Freeze.svg", "frost_protection"]
-        if main_state == 1:
-            if sub_state == 0:
-                return ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "stove_off"]
-            elif sub_state == 1:
-                return ["https://www.rika-firenet.com/images/status/Visu_Standby.svg", "standby"]
-            elif sub_state == 2:
-                return ["https://www.rika-firenet.com/images/status/Visu_Standby.svg", "external_request"]
-            elif sub_state == 3:
-                return ["https://www.rika-firenet.com/images/status/Visu_Standby.svg", "standby"]
-            return ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "sub_state_unknown"]
-        elif main_state == 2:
-            return ["https://www.rika-firenet.com/images/status/Visu_Ignition.svg", "ignition_on"]
-        elif main_state == 3:
-            return ["https://www.rika-firenet.com/images/status/Visu_Ignition.svg", "starting_up"]
-        elif main_state == 4:
-            return ["https://www.rika-firenet.com/images/status/Visu_Control.svg", "running"]
-        elif main_state == 5:
-            if sub_state == 3 or sub_state == 4:
-                return ["https://www.rika-firenet.com/images/status/Visu_Clean.svg", "big_clean"]
-            else:
-                return ["https://www.rika-firenet.com/images/status/Visu_Clean.svg", "clean"]
-        elif main_state == 6:
-            return ["https://www.rika-firenet.com/images/status/Visu_BurnOff.svg", "burn_off"]
-        elif main_state == 11 or main_state == 13 or main_state == 14 or main_state == 16 or main_state == 17 or main_state == 50:
-            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_check"]
-        elif main_state == 21 and sub_state == 12 and stove_temp <=350 and stove_temp >= 300:
-            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_refuel"]
-        elif main_state == 21 and sub_state == 12 and stove_temp < 300:
-            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_stop_refuel"]
-        elif main_state == 20 and eco_mode:
-            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_ecomode"]
-        elif main_state == 20 or main_state == 21:
-            return ["https://www.rika-firenet.com/images/status/Visu_SpliLog.svg", "split_log_mode"]
         return ["https://www.rika-firenet.com/images/status/Visu_Off.svg", "unknown"]
