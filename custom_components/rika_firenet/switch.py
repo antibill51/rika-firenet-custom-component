@@ -55,7 +55,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         switches_for_stove = get_switch_device_list(stove)
         stove_entities.extend(
             [
-                RikaFirenetStoveBinarySwitch(entry, stove, coordinator, switch_type)
+                RikaFirenetStoveSwitch(entry, stove, coordinator, switch_type)
                 for switch_type in switches_for_stove
             ]
         )
@@ -64,7 +64,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         async_add_entities(stove_entities, True)
 
 
-class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
+class RikaFirenetStoveSwitch(RikaFirenetEntity, SwitchEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, switch_type):
         super().__init__(config_entry, stove, coordinator, switch_type)
         self._switch_type = switch_type
