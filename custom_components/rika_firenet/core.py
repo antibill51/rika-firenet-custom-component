@@ -16,7 +16,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 class RikaFirenetCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, username, password, default_temperature, default_scan_interval, config_flow=False):
+    def __init__(self, hass, username, password, default_temperature, default_scan_interval):
         self.hass = hass
         self._username = username
         self._password = password
@@ -27,14 +27,31 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         self._number_fail = 0
         self.platforms = []
 
-        if not config_flow:
-            super().__init__(
-                hass,
-                _LOGGER,
-                name=DOMAIN,
-                update_method=self.async_update_data,
-                update_interval=self._default_scan_interval
-            )
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_method=self.async_update_data,
+            update_interval=self._default_scan_interval
+        )
+
+    @staticmethod
+    def test_authentication(username, password):
+        """Test authentication with Rika Firenet credentials."""
+        _LOGGER.debug("Testing Rika Firenet credentials.")
+        client = requests.session()
+        data = {'email': username, 'password': password}
+        try:
+            response = client.post(LOGIN_URL, data, timeout=10)
+            response.raise_for_status()
+            if '/logout' not in response.text:
+                _LOGGER.warning("Authentication test failed: '/logout' not in response.")
+                return False
+            _LOGGER.debug("Authentication test successful.")
+            return True
+        except requests.exceptions.RequestException as e:
+            _LOGGER.error(f"Authentication test failed due to network error: {e}")
+            return False
 
     async def async_update_data(self):
         try:
