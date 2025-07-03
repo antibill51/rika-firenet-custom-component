@@ -447,15 +447,13 @@ class RikaFirenetStove:
         return self._state.get('controls', {}).get('operatingMode') if self._state else None
 
     def is_stove_heating_times_on(self):
-        if self.get_stove_operation_mode() == 2:
-            if not self.is_heating_times_active_for_comfort(): # Comfort mode
-                return False
-            else:
-                return True
-        elif self.get_stove_operation_mode() == 0: # Manual mode
-            return False
-        elif self.get_stove_operation_mode() == 1:
+        op_mode = self.get_stove_operation_mode()
+        if op_mode == 1: # Auto mode is always considered "heating times on"
             return True
+        if op_mode == 2: # Comfort mode depends on the specific flag
+            return self.is_heating_times_active_for_comfort()
+        # Covers op_mode 0 (Manual), None, or any other unexpected value
+        return False
 
     def is_heating_times_active_for_comfort(self):
         return bool(self._state.get('controls', {}).get('heatingTimesActiveForComfort')) if self._state else False
