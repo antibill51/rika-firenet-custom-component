@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
-from homeassistant.components.climate.const import HVACMode
+from homeassistant.components.climate.const import HVACMode, PRESET_COMFORT
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .const import DOMAIN
 
@@ -473,6 +473,21 @@ class RikaFirenetStove:
         elif hvac_mode == HVACMode.HEAT:
             _LOGGER.debug(f"Setting HVAC mode to HEAT for {self._id} (Turn heating times off / manual)")
             self.turn_heating_times_off()
+
+    def set_preset_mode(self, preset_mode):
+        """Set the stove's operating mode based on a preset."""
+        _LOGGER.debug(f"Setting preset_mode for {self._id} to: {preset_mode}")
+        if preset_mode == PRESET_COMFORT:
+            # Comfort mode is operatingMode 2
+            self.set_stove_operation_mode(2)
+        else:  # PRESET_NONE
+            # PRESET_NONE implies manual control.
+            # If heating times are active, turn them off, which will switch to manual mode.
+            # Otherwise, just ensure we are in manual mode (0).
+            if self.is_stove_heating_times_on():
+                self.turn_heating_times_off()
+            else:
+                self.set_stove_operation_mode(0)
 
     def is_stove_convection_fan1_on(self):
         return bool(self._state.get('controls', {}).get('convectionFan1Active')) if self._state else False
