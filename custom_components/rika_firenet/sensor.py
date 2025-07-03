@@ -77,9 +77,11 @@ class RikaFirenetStoveSensor(RikaFirenetEntity):
 
     @property
     def state(self):
-        # Uses self._stove.get_...() which reads from self._stove._state (updated by the coordinator)
-        # or self._stove_data which is a copy of self._stove._state via the coordinator.
-        # The get methods of self._stove already include logic to handle None.
+        # Special case for a coordinator-level sensor attached to a stove device
+        if self._sensor == "number fail":
+            return self.coordinator.get_number_fail()
+
+        # For all other sensors, get the value from the stove object
         command = SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")
         if command:
             return getattr(self._stove, command)()

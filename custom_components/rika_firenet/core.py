@@ -336,9 +336,6 @@ class RikaFirenetStove:
             # Optionnel: mettre self._state à None pour indiquer l'indisponibilité
             # self._state = None
 
-    def get_number_fail(self):
-        return int(self._coordinator.get_number_fail())
-
 # Send command
     def set_temperatureOffset(self, temperature):
         self._set_control('temperatureOffset', float(temperature))
