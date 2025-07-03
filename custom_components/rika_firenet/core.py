@@ -185,25 +185,30 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
         for attempt in range(3): # Reduce the number of attempts for faster feedback
             _LOGGER.info(f'Attempting to update stove {stove_id} controls ({attempt + 1}/3)')
-            response = self._client.post(
-                f'https://www.rika-firenet.com/api/client/{stove_id}/controls', json=controls, timeout=15
-            )
-            if 'OK' in response.text:
-                _LOGGER.info(f'Stove {stove_id} controls updated successfully via API.')
-                self._number_fail = 0
-                # Return fresh state after successful update
-                return self.get_stove_state(stove_id) # Important to get the latest revision
-            else:
-                _LOGGER.warning(f"Update for stove {stove_id} API call returned not OK: {response.status_code} - {response.text}")
-                self._number_fail += 1
-                time.sleep(5)
-                # Update revision before the next attempt, as it might have changed
-                current_state_for_rev = self.get_stove_state(stove_id)
-                if current_state_for_rev and 'controls' in current_state_for_rev and 'revision' in current_state_for_rev['controls']:
-                    controls['revision'] = current_state_for_rev['controls']['revision']
-                    _LOGGER.info(f"Updated revision to {controls['revision']} for stove {stove_id} before retry.")
+            try:
+                response = self._client.post(
+                    f'https://www.rika-firenet.com/api/client/{stove_id}/controls', json=controls, timeout=15
+                )
+                if 'OK' in response.text:
+                    _LOGGER.info(f'Stove {stove_id} controls updated successfully via API.')
+                    self._number_fail = 0
+                    # Return fresh state after successful update
+                    return self.get_stove_state(stove_id) # Important to get the latest revision
                 else:
-                    _LOGGER.warning(f"Could not get new revision for stove {stove_id} before retry.")
+                    _LOGGER.warning(f"Update for stove {stove_id} API call returned not OK: {response.status_code} - {response.text}")
+            except requests.exceptions.RequestException as e:
+                _LOGGER.warning(f"Network error on attempt {attempt + 1} for stove {stove_id}: {e}")
+
+            # This block runs if the update was not successful (not "OK" or a network error)
+            self._number_fail += 1
+            time.sleep(5)
+            # Update revision before the next attempt, as it might have changed
+            current_state_for_rev = self.get_stove_state(stove_id)
+            if current_state_for_rev and 'controls' in current_state_for_rev and 'revision' in current_state_for_rev['controls']:
+                controls['revision'] = current_state_for_rev['controls']['revision']
+                _LOGGER.info(f"Updated revision to {controls['revision']} for stove {stove_id} before retry.")
+            else:
+                _LOGGER.warning(f"Could not get new revision for stove {stove_id} before retry.")
         _LOGGER.error(f'Failed to update stove {stove_id} controls after 3 attempts')
         return None # Indicate persistent failure
 
