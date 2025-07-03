@@ -97,15 +97,7 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
 
     @property
     def hvac_mode(self):
-        if not self._stove_data or not self._stove_data.get('controls', {}).get('onOff'):
-            return HVACMode.OFF
-        
-        op_mode = self._stove_data.get('controls', {}).get('operatingMode')
-        heating_times_active = self._stove_data.get('controls', {}).get('heatingTimesActiveForComfort')
-
-        if op_mode == 1 or (op_mode == 2 and heating_times_active): # AUTO mode (scheduled)
-            return HVACMode.AUTO
-        return HVACMode.HEAT # Manual mode (or if op_mode == 0)
+        return self._stove.get_hvac_mode()
 
     @property
     def hvac_action(self) -> HVACAction:
