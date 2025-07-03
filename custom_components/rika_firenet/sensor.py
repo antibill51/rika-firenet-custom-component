@@ -28,6 +28,25 @@ SENSOR_ATTRIBUTES = {
     "statusSubError": {"icon": "mdi:information-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_status_sub_error"},
 }
 
+BASE_DEVICE_SENSORS = [
+    "stove consumption",
+    "stove runtime",
+    "stove temperature",
+    "room temperature",
+    "stove thermostat",
+    "stove burning",
+    "stove status",
+    "pellets before service",
+    "fan velocity",
+    "diag motor",
+    "number fail",
+    "main state",
+    "sub state",
+    "statusError",
+    "statusSubError",
+    "statusWarning"
+]
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.info("Setting up platform sensor")
@@ -36,34 +55,18 @@ async def async_setup_entry(hass, entry, async_add_entities):
     stove_entities = []
 
     for stove in coordinator.get_stoves():
-        DEVICE_SENSORS = [
-            "stove consumption",
-            "stove runtime",
-            "stove temperature",
-            "room temperature",
-            "stove thermostat",
-            "stove burning",
-            "stove status",
-            "pellets before service",
-            "fan velocity",
-            "diag motor",
-            "number fail",
-            "main state",
-            "sub state",
-            "statusError",
-            "statusSubError",
-            "statusWarning"
-        ]
+        # Start with a copy of the base sensors for each stove
+        sensors_for_stove = list(BASE_DEVICE_SENSORS)
 
         if stove.is_logRuntimePossible():
-            DEVICE_SENSORS.append("stove runtime logs")
+            sensors_for_stove.append("stove runtime logs")
         if stove.is_airFlapsPossible():
-            DEVICE_SENSORS.append("airflaps")
+            sensors_for_stove.append("airflaps")
 
         stove_entities.extend(
             [
                 RikaFirenetStoveSensor(entry, stove, coordinator, sensor)
-                for sensor in DEVICE_SENSORS
+                for sensor in sensors_for_stove
             ]
         )
 
