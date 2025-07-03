@@ -6,6 +6,30 @@ from .core import RikaFirenetCoordinator, RikaFirenetStove
 
 _LOGGER = logging.getLogger(__name__)
 
+SWITCH_CONFIG = {
+    "on off": {
+        "is_on": "is_stove_on",
+        "turn_on": ("set_stove_on_off", True),
+        "turn_off": ("set_stove_on_off", False),
+        "icon": "hass:power",
+    },
+    "heating times": {
+        "is_on": "is_stove_heating_times_on",
+        "turn_on": ("turn_heating_times_on",),
+        "turn_off": ("turn_heating_times_off",),
+        "icon": "mdi:calendar-clock",
+    },
+    "frost protection": {
+        "is_on": "is_frost_protection",
+        "turn_on": ("turn_on_off_frost_protection", True),
+        "turn_off": ("turn_on_off_frost_protection", False),
+        "icon": "hass:snowflake-check",
+    },
+    "eco mode": {"is_on": "is_stove_eco_mode", "turn_on": ("turn_on_off_eco_mode", True), "turn_off": ("turn_on_off_eco_mode", False), "icon": "hass:leaf"},
+    "convection fan1": {"is_on": "is_stove_convection_fan1_on", "turn_on": ("turn_convection_fan1_on_off", True), "turn_off": ("turn_convection_fan1_on_off", False), "icon": "hass:fan"},
+    "convection fan2": {"is_on": "is_stove_convection_fan2_on", "turn_on": ("turn_convection_fan2_on_off", True), "turn_off": ("turn_convection_fan2_on_off", False), "icon": "hass:fan"},
+}
+
 async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.info("Setting up platform switches")
     coordinator: RikaFirenetCoordinator = hass.data[DOMAIN][entry.entry_id]
@@ -37,83 +61,46 @@ class RikaFirenetStoveBinarySwitch(RikaFirenetEntity, SwitchEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, switch_type):
         super().__init__(config_entry, stove, coordinator, switch_type)
         self._switch_type = switch_type
+        self._config = SWITCH_CONFIG.get(self._switch_type, {})
 
     @property
     def unique_id(self):
         return f"{self._stove._id}_{self._switch_type}".lower()
-    
+
     @property
     def translation_key(self):
         return self._switch_type
 
     @property
     def icon(self):
-        if self._switch_type == "eco mode":
-            return "hass:leaf"
-        elif self._switch_type.startswith("convection fan"):
-            return "hass:fan"
-        elif self._switch_type.startswith("frost protection"):
-            return "hass:snowflake-check"
-        return "hass:power"
+        return self._config.get("icon")
 
     @property
     def is_on(self):
-        if self._switch_type == "on off":
-            return self._stove.is_stove_on()
-        # The is_stove_* methods of self._stove read the current state
-        elif self._switch_type == "convection fan1":
-            return self._stove.is_stove_convection_fan1_on()
-        elif self._switch_type == "convection fan2":
-            return self._stove.is_stove_convection_fan2_on()
-        elif self._switch_type == "heating times":
-            return self._stove.is_stove_heating_times_on() # Utilise la logique interne de RikaFirenetStove
-        elif self._switch_type == "eco mode":
-            return self._stove.is_stove_eco_mode()
-        elif self._switch_type == "frost protection":
-            return self._stove.is_frost_protection()
+        command = self._config.get("is_on")
+        if command:
+            return getattr(self._stove, command)()
+        return False
+
+    async def _async_call_command(self, command_key: str):
+        """Execute a command from the config."""
+        command_info = self._config.get(command_key)
+        if not command_info:
+            _LOGGER.warning("No command '%s' for switch '%s'", command_key, self._switch_type)
+            return
+
+        method_name, *args = command_info
+        method = getattr(self._stove, method_name)
+        method(*args)
+
+        await self.coordinator.async_request_refresh()
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the entity on."""
         _LOGGER.info("Turning on switch '%s' for stove '%s'", self._switch_type, self._stove.get_name())
-        # Corrected logic here
-        if self._switch_type == "on off":
-            self._stove.set_stove_on_off(True)
-        elif self._switch_type == "convection fan1":
-            self._stove.turn_convection_fan1_on_off(True)
-        elif self._switch_type == "convection fan2":
-            self._stove.turn_convection_fan2_on_off(True)
-        elif self._switch_type == "heating times":
-            self._stove.turn_heating_times_on()
-        elif self._switch_type == "eco mode":
-            self._stove.turn_on_off_eco_mode(True)
-        elif self._switch_type == "frost protection":
-            self._stove.turn_on_off_frost_protection(True)
-        else:
-            _LOGGER.warning(f"Unknown switch type '{self._switch_type}' for turn_on action.")
-            return
-
-        # The methods above on self._stove mark _controls_changed = True
-        # Ask the coordinator to send the command and refresh
-        await self.coordinator.async_request_refresh()
+        await self._async_call_command("turn_on")
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the entity off."""
         _LOGGER.info("Turning off switch '%s' for stove '%s'", self._switch_type, self._stove.get_name())
-        if self._switch_type == "on off":
-            self._stove.set_stove_on_off(False)
-        elif self._switch_type == "convection fan1":
-            self._stove.turn_convection_fan1_on_off(False)
-        elif self._switch_type == "convection fan2":
-            self._stove.turn_convection_fan2_on_off(False)
-        elif self._switch_type == "heating times":
-            self._stove.turn_heating_times_off()
-        elif self._switch_type == "eco mode":
-            self._stove.turn_on_off_eco_mode(False)
-        elif self._switch_type == "frost protection":
-            self._stove.turn_on_off_frost_protection(False)
-        else:
-            _LOGGER.warning(f"Unknown switch type '{self._switch_type}' for turn_off action.")
-            return
-        # The methods above on self._stove mark _controls_changed = True
-        # Ask the coordinator to send the command and refresh
-        await self.coordinator.async_request_refresh()
+        await self._async_call_command("turn_off")
