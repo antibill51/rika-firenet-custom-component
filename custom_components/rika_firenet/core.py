@@ -5,7 +5,13 @@ import requests
 from bs4 import BeautifulSoup
 from homeassistant.components.climate.const import HVACAction, HVACMode, PRESET_COMFORT, PRESET_NONE
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    LOGIN_URL,
+    SUMMARY_URL,
+    STATUS_URL,
+    CONTROLS_URL
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,7 +93,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def connect(self):
         if not self.is_authenticated():
             data = {'email': self._username, 'password': self._password}
-            response = self._client.post('https://www.rika-firenet.com/web/login', data)
+            response = self._client.post(LOGIN_URL, data)
             if '/logout' not in response.text:
                 raise Exception('Failed to connect with Rika Firenet')
             _LOGGER.info('Connected to Rika Firenet')
@@ -111,7 +117,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def get_stove_state(self, stove_id):
         try:
             self.connect() # Ensure connection
-            url = f'https://www.rika-firenet.com/api/client/{stove_id}/status?nocache={int(time.time())}'
+            url = STATUS_URL.format(stove_id=stove_id) + f'?nocache={int(time.time())}'
             response = self._client.get(url, timeout=10)
             response.raise_for_status() # Raise an exception for HTTP error codes
             data = response.json()
@@ -128,7 +134,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def setup_stoves(self):
         self.connect()
         stoves = []
-        response = self._client.get('https://www.rika-firenet.com/web/summary', timeout=10)
+        response = self._client.get(SUMMARY_URL, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, "html.parser")
         stove_list = soup.find("ul", {"id": "stoveList"})
@@ -194,7 +200,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             _LOGGER.info(f'Attempting to update stove {stove_id} controls ({attempt + 1}/3)')
             try:
                 response = self._client.post(
-                    f'https://www.rika-firenet.com/api/client/{stove_id}/controls', json=controls, timeout=15
+                    CONTROLS_URL.format(stove_id=stove_id), json=controls, timeout=15
                 )
                 if 'OK' in response.text:
                     _LOGGER.info(f'Stove {stove_id} controls updated successfully via API.')

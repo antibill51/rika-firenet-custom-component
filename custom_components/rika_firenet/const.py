@@ -21,6 +21,13 @@ PLATFORMS = [CLIMATE, SENSOR, SWITCH, NUMBER]
 
 SUPPORT_PRESET = [PRESET_NONE, PRESET_COMFORT]
 
+# API Endpoints
+BASE_URL = "https://www.rika-firenet.com"
+LOGIN_URL = f"{BASE_URL}/web/login"
+SUMMARY_URL = f"{BASE_URL}/web/summary"
+STATUS_URL = f"{BASE_URL}/api/client/{{stove_id}}/status"
+CONTROLS_URL = f"{BASE_URL}/api/client/{{stove_id}}/controls"
+
 VERSION = "2.29.34"
 DOMAIN = "rika_firenet"
 
