@@ -93,12 +93,19 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             _LOGGER.info('Connected to Rika Firenet')
 
     def is_authenticated(self):
-        if 'connect.sid' not in self._client.cookies:
+        sid_cookie = None
+        for cookie in self._client.cookies:
+            if cookie.name == 'connect.sid':
+                sid_cookie = cookie
+                break
+
+        if not sid_cookie:
             return False
-        expiresIn = list(self._client.cookies)[0].expires
-        epochNow = int(datetime.now().strftime('%s'))
-        if expiresIn <= epochNow:
+
+        if sid_cookie.expires and sid_cookie.expires <= int(datetime.now().timestamp()):
+            _LOGGER.debug("Rika Firenet session cookie expired.")
             return False
+
         return True
 
     def get_stove_state(self, stove_id):
@@ -557,10 +564,7 @@ class RikaFirenetStove:
         return PRESET_COMFORT if op_mode == 2 else PRESET_NONE
 
     def is_stove_burning(self):
-        if self.get_main_state() == 4 or self.get_main_state() == 5:
-            return True
-        else:
-            return False
+        return self.get_main_state() in [4, 5]
 
     def get_stove_consumption(self):
         return self._state.get('sensors', {}).get('parameterFeedRateTotal') if self._state else None

@@ -33,14 +33,6 @@ class RikaFirenetEntity(CoordinatorEntity):
         return stove_id_str.replace(" ", "_").lower()
 
     @property
-    def _stove_data(self):
-        """Helper to get the specific data for this stove from the coordinator."""
-        if self.coordinator.data and self._stove_id in self.coordinator.data:
-            return self.coordinator.data[self._stove_id]
-        _LOGGER.debug(f"Stove data not found for {self._stove_id} in coordinator.data. Keys: {list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}")
-        return None
-
-    @property
     def unique_id(self):
         """Return the unique ID of the entity."""
         return self._unique_id
@@ -66,6 +58,5 @@ class RikaFirenetEntity(CoordinatorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return (
-            super().available and self.coordinator.last_update_success and self._stove_data is not None
-        )
+        # The stove is available if the coordinator is available and the stove has a state.
+        return super().available and self._stove.get_state() is not None
