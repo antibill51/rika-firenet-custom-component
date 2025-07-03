@@ -490,10 +490,24 @@ class RikaFirenetStove:
         return bool(self._state.get('controls', {}).get('heatingTimesActiveForComfort')) if self._state else False
 
     def get_room_power_request(self):
-        return self._state.get('controls', {}).get('RoomPowerRequest') if self._state else None
+        if self._state and 'controls' in self._state and 'RoomPowerRequest' in self._state['controls']:
+            value = self._state['controls']['RoomPowerRequest']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid RoomPowerRequest value for {self._id}: {value}")
+                return None
+        return None
 
     def get_heating_power(self):
-        return self._state.get('controls', {}).get('heatingPower') if self._state else None
+        if self._state and 'controls' in self._state and 'heatingPower' in self._state['controls']:
+            value = self._state['controls']['heatingPower']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid heatingPower value for {self._id}: {value}")
+                return None
+        return None
 
     def set_hvac_mode(self, hvac_mode):
         if hvac_mode == HVACMode.OFF:
@@ -524,19 +538,47 @@ class RikaFirenetStove:
         return bool(self._state.get('controls', {}).get('convectionFan1Active')) if self._state else False
 
     def get_convection_fan1_level(self):
-        return self._state.get('controls', {}).get('convectionFan1Level') if self._state else None
+        if self._state and 'controls' in self._state and 'convectionFan1Level' in self._state['controls']:
+            value = self._state['controls']['convectionFan1Level']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid convectionFan1Level value for {self._id}: {value}")
+                return None
+        return None
 
     def get_convection_fan1_area(self):
-        return self._state.get('controls', {}).get('convectionFan1Area') if self._state else None
+        if self._state and 'controls' in self._state and 'convectionFan1Area' in self._state['controls']:
+            value = self._state['controls']['convectionFan1Area']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid convectionFan1Area value for {self._id}: {value}")
+                return None
+        return None
 
     def is_stove_convection_fan2_on(self):
         return bool(self._state.get('controls', {}).get('convectionFan2Active')) if self._state else False
 
     def get_convection_fan2_level(self):
-        return self._state.get('controls', {}).get('convectionFan2Level') if self._state else None
+        if self._state and 'controls' in self._state and 'convectionFan2Level' in self._state['controls']:
+            value = self._state['controls']['convectionFan2Level']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid convectionFan2Level value for {self._id}: {value}")
+                return None
+        return None
 
     def get_convection_fan2_area(self):
-        return self._state.get('controls', {}).get('convectionFan2Area') if self._state else None
+        if self._state and 'controls' in self._state and 'convectionFan2Area' in self._state['controls']:
+            value = self._state['controls']['convectionFan2Area']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid convectionFan2Area value for {self._id}: {value}")
+                return None
+        return None
 
     def get_hvac_mode(self): # Must be based on the current state
         if not self.is_stove_on(): # Uses the method that checks self._state
@@ -599,13 +641,34 @@ class RikaFirenetStove:
         return self._state.get('sensors', {}).get('parameterFeedRateService') if self._state else None
 
     def get_stove_temperature(self):
-        return self._state.get('sensors', {}).get('inputFlameTemperature') if self._state else None
+        if self._state and 'sensors' in self._state and 'inputFlameTemperature' in self._state['sensors']:
+            value = self._state['sensors']['inputFlameTemperature']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid inputFlameTemperature value for {self._id}: {value}")
+                return None
+        return None
 
     def get_diag_motor(self):
-        return self._state.get('sensors', {}).get('outputDischargeMotor') if self._state else None
+        if self._state and 'sensors' in self._state and 'outputDischargeMotor' in self._state['sensors']:
+            value = self._state['sensors']['outputDischargeMotor']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid outputDischargeMotor value for {self._id}: {value}")
+                return None
+        return None
 
     def get_fan_velocity(self):
-        return self._state.get('sensors', {}).get('outputIDFan') if self._state else None
+        if self._state and 'sensors' in self._state and 'outputIDFan' in self._state['sensors']:
+            value = self._state['sensors']['outputIDFan']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid outputIDFan value for {self._id}: {value}")
+                return None
+        return None
 
     def get_status_text(self):
         return self.get_status()[1]
