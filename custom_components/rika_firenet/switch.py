@@ -32,6 +32,19 @@ SWITCH_CONFIG = {
 
 BASE_DEVICE_SWITCHES = ["on off", "heating times", "frost protection"]
 
+def get_switch_device_list(stove: RikaFirenetStove) -> list[str]:
+    """Return the list of switch entities for a given stove."""
+    switches_for_stove = list(BASE_DEVICE_SWITCHES)
+
+    if stove.is_airFlapsPossible():
+        switches_for_stove.append("eco mode")
+    if stove.is_multiAir1():
+        switches_for_stove.append("convection fan1")
+    if stove.is_multiAir2():
+        switches_for_stove.append("convection fan2")
+    
+    return switches_for_stove
+
 async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.info("Setting up platform switches")
     coordinator: RikaFirenetCoordinator = hass.data[DOMAIN][entry.entry_id]
@@ -39,15 +52,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     stove_entities = []
 
     for stove in coordinator.get_stoves():
-        switches_for_stove = list(BASE_DEVICE_SWITCHES)
-
-        if stove.is_airFlapsPossible():
-            switches_for_stove.append("eco mode")
-        if stove.is_multiAir1():
-            switches_for_stove.append("convection fan1")
-        if stove.is_multiAir2():
-            switches_for_stove.append("convection fan2")
-
+        switches_for_stove = get_switch_device_list(stove)
         stove_entities.extend(
             [
                 RikaFirenetStoveBinarySwitch(entry, stove, coordinator, switch_type)

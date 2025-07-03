@@ -47,6 +47,17 @@ BASE_DEVICE_SENSORS = [
     "statusWarning"
 ]
 
+def get_sensor_device_list(stove: RikaFirenetStove) -> list[str]:
+    """Return the list of sensor entities for a given stove."""
+    # Start with a copy of the base sensors for each stove
+    sensors_for_stove = list(BASE_DEVICE_SENSORS)
+
+    if stove.is_logRuntimePossible():
+        sensors_for_stove.append("stove runtime logs")
+    if stove.is_airFlapsPossible():
+        sensors_for_stove.append("airflaps")
+    
+    return sensors_for_stove
 
 async def async_setup_entry(hass, entry, async_add_entities):
     _LOGGER.info("Setting up platform sensor")
@@ -55,14 +66,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     stove_entities = []
 
     for stove in coordinator.get_stoves():
-        # Start with a copy of the base sensors for each stove
-        sensors_for_stove = list(BASE_DEVICE_SENSORS)
-
-        if stove.is_logRuntimePossible():
-            sensors_for_stove.append("stove runtime logs")
-        if stove.is_airFlapsPossible():
-            sensors_for_stove.append("airflaps")
-
+        sensors_for_stove = get_sensor_device_list(stove)
         stove_entities.extend(
             [
                 RikaFirenetStoveSensor(entry, stove, coordinator, sensor)
