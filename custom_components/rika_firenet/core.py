@@ -221,7 +221,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
 STATUS_RULES = [
     # Priority 1: Errors, connectivity, and critical warnings
-    (lambda s: s._state.get('lastSeenMinutes', 99) > 2,
+    (lambda s: s.get_last_seen_minutes() > 2,
      lambda s: ["https://www.rika-firenet.com/images/status/Warning_WifiSignal.svg", "offline"]),
     (lambda s: s.get_status_warning() == 2,
      lambda s: ["https://www.rika-firenet.com/images/status/Any_Warning.svg", "pellet_lid_open"]),
@@ -233,7 +233,7 @@ STATUS_RULES = [
      lambda s: ["/", "statusSubError" + str(s.get_status_sub_error())]),
     (lambda s: s.get_status_error() == 32768,
      lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_smoke_fan.svg", "smoke_fan"]),
-    (lambda s: s._state.get('sensors', {}).get('statusFrostStarted', False),
+    (lambda s: s.is_frost_protection_started(),
      lambda s: ["https://www.rika-firenet.com/images/status/Visu_Freeze.svg", "frost_protection"]),
 
     # Priority 2: Main operational states
@@ -463,6 +463,17 @@ class RikaFirenetStove:
 
     def is_frost_protection(self):
         return bool(self._state.get('controls', {}).get('frostProtectionActive')) if self._state else False
+
+    def is_frost_protection_started(self):
+        return bool(self._state.get('sensors', {}).get('statusFrostStarted', False)) if self._state else False
+
+    def get_last_seen_minutes(self):
+        if self._state and 'lastSeenMinutes' in self._state:
+            try:
+                return int(self._state['lastSeenMinutes'])
+            except (ValueError, TypeError):
+                return 99 # Return a high value to indicate an issue
+        return 99 # Default to a high value if not present
 
     def get_stove_set_back_temperature(self):
         if self._state and 'controls' in self._state and 'setBackTemperature' in self._state['controls']:
