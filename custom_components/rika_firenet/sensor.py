@@ -55,9 +55,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
             "statusWarning"
         ]
 
-        if stove.is_logRuntimePossible(): # Corrected: call on the stove instance
+        if stove.is_logRuntimePossible():
             DEVICE_SENSORS.append("stove runtime logs")
-        if stove.is_airFlapsPossible(): # Corrected: call on the stove instance
+        if stove.is_airFlapsPossible():
             DEVICE_SENSORS.append("airflaps")
 
         stove_entities.extend(

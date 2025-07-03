@@ -39,11 +39,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
     for stove in coordinator.get_stoves():
         stove_switches = ["on off", "heating times", "frost protection"]
 
-        if stove.is_airFlapsPossible(): # Corrected: call on the stove instance
+        if stove.is_airFlapsPossible():
             stove_switches.append("eco mode")
-        if stove.is_multiAir1(): # Corrected: call on the stove instance
+        if stove.is_multiAir1():
             stove_switches.append("convection fan1")
-        if stove.is_multiAir2(): # Corrected: call on the stove instance
+        if stove.is_multiAir2():
             stove_switches.append("convection fan2")
 
         stove_entities.extend(
