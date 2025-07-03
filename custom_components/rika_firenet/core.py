@@ -299,6 +299,16 @@ class RikaFirenetStove:
         else:
             _LOGGER.warning(f"Cannot set control '{key}': stove state not available for stove {self._id}.")
 
+    def _set_controls(self, controls_to_set: dict):
+        """Helper to set multiple control values and mark for update."""
+        _LOGGER.debug(f"Setting multiple controls: {controls_to_set} for stove {self._id}")
+        if self._state and 'controls' in self._state:
+            for key, value in controls_to_set.items():
+                self._state['controls'][key] = value
+            self._mark_controls_changed()
+        else:
+            _LOGGER.warning(f"Cannot set controls: stove state not available for stove {self._id}.")
+
     def sync_state(self):
         _LOGGER.debug(f"Syncing state for stove {self._id}")
         try:
@@ -333,11 +343,10 @@ class RikaFirenetStove:
         self._set_control('operatingMode', int(mode))
 
     def set_heating_times_active_for_comfort(self, active):
-        _LOGGER.debug("set_heating_times_active_for_comfort(): " + str(active))
-        if self._state and 'controls' in self._state:
-            self._state['controls']['onOff'] = True # Assumed: changing heating times implies stove should be on or remain on
-            self._state['controls']['heatingTimesActiveForComfort'] = bool(active)
-            self._mark_controls_changed()
+        self._set_controls({
+            'onOff': True, # Assumed: changing heating times implies stove should be on or remain on
+            'heatingTimesActiveForComfort': bool(active)
+        })
 
     def set_room_power_request(self, power):
         self._set_control('RoomPowerRequest', int(power))
@@ -361,20 +370,22 @@ class RikaFirenetStove:
         self._set_control('onOff', bool(on_off))
 
     def turn_heating_times_on(self): 
-        if self._state and 'controls' in self._state:
-            self._state['controls']['onOff'] = True
-            self._state['controls']['heatingTimesActiveForComfort'] = True # Use get method for robustness
-            if self.get_stove_operation_mode() != 2:
-                self._state['controls']['operatingMode'] = 1
-            self._mark_controls_changed()
+        controls_to_set = {
+            'onOff': True,
+            'heatingTimesActiveForComfort': True
+        }
+        if self.get_stove_operation_mode() != 2:
+            controls_to_set['operatingMode'] = 1
+        self._set_controls(controls_to_set)
 
     def turn_heating_times_off(self):
-        if self._state and 'controls' in self._state:
-            self._state['controls']['onOff'] = True # The stove remains on, only the scheduled heating mode is deactivated
-            self._state['controls']['heatingTimesActiveForComfort'] = False
-            if self.get_stove_operation_mode() != 2:
-                self._state['controls']['operatingMode'] = 0 # Mode manuel
-            self._mark_controls_changed()
+        controls_to_set = {
+            'onOff': True, # The stove remains on, only the scheduled heating mode is deactivated
+            'heatingTimesActiveForComfort': False
+        }
+        if self.get_stove_operation_mode() != 2:
+            controls_to_set['operatingMode'] = 0 # Mode manuel
+        self._set_controls(controls_to_set)
 
     def turn_convection_fan1_on_off(self, on_off=True):
         self._set_control('convectionFan1Active', bool(on_off))
@@ -514,6 +525,11 @@ class RikaFirenetStove:
             return HVACMode.AUTO
         # If on but not in AUTO mode (scheduled), then it's HEAT (manual)
         return HVACMode.HEAT
+
+    def get_preset_mode(self):
+        """Return the current preset mode."""
+        op_mode = self.get_stove_operation_mode()
+        return PRESET_COMFORT if op_mode == 2 else PRESET_NONE
 
     def is_stove_burning(self):
         if self.get_main_state() == 4 or self.get_main_state() == 5:

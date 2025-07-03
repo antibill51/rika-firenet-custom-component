@@ -71,9 +71,7 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
     @property
     def preset_mode(self):
         """Return the current preset mode, e.g., home, away, temp."""
-        # Use _stove_data to read the current state
-        op_mode = self._stove_data.get('controls', {}).get('operatingMode') if self._stove_data else None
-        return PRESET_COMFORT if op_mode == 2 else PRESET_NONE
+        return self._stove.get_preset_mode()
 
     @property
     def target_temperature(self):
