@@ -1,6 +1,8 @@
 import logging
 from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE, REVOLUTIONS_PER_MINUTE
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
+
 from .entity import RikaFirenetEntity
 from .const import DOMAIN
 from .core import RikaFirenetCoordinator, RikaFirenetStove
@@ -8,9 +10,30 @@ from .core import RikaFirenetCoordinator, RikaFirenetStove
 _LOGGER = logging.getLogger(__name__)
 
 SENSOR_ATTRIBUTES = {
-    "stove consumption": {"unit": UnitOfMass.KILOGRAMS, "icon": "mdi:weight-kilogram", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_consumption"},
-    "stove runtime": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_pellets"},
-    "stove runtime logs": {"unit": UnitOfTime.HOURS, "icon": "mdi:timer-outline", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_runtime_logs"},
+    "stove consumption": {
+        "unit": UnitOfMass.KILOGRAMS,
+        "icon": "mdi:weight-kilogram",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_stove_consumption",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.WEIGHT
+    },
+    "stove runtime": {
+        "unit": UnitOfTime.HOURS,
+        "icon": "mdi:timer-outline",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_stove_runtime_pellets",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION
+    },
+    "stove runtime logs": {
+        "unit": UnitOfTime.HOURS,
+        "icon": "mdi:timer-outline",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_stove_runtime_logs",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION
+    },
     "stove temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer", "category": EntityCategory.DIAGNOSTIC,"command": "get_stove_temperature"},
     "room temperature": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_temperature"},
     "stove thermostat": {"unit": UnitOfTemperature.CELSIUS, "icon": "mdi:thermometer","command": "get_room_thermostat"},
@@ -77,34 +100,54 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if stove_entities:
         async_add_entities(stove_entities, True)
 
-class RikaFirenetStoveSensor(RikaFirenetEntity):
+class RikaFirenetStoveSensor(RikaFirenetEntity, SensorEntity):
+    """Représentation d'un capteur Rika Firenet."""
+    
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, sensor):
+        """Initialise le capteur."""
         super().__init__(config_entry, stove, coordinator, sensor)
         self._sensor = sensor
+        self._attr_has_entity_name = True
+        
+        # Définir directement les attributs d'état
+        sensor_attrs = SENSOR_ATTRIBUTES.get(sensor, {})
+        self._attr_native_unit_of_measurement = sensor_attrs.get("unit")
+        self._attr_icon = sensor_attrs.get("icon")
+        self._attr_entity_category = sensor_attrs.get("category")
+        self._attr_device_class = sensor_attrs.get("device_class")
+        self._attr_state_class = sensor_attrs.get("state_class")
 
     @property
-    def state(self):
-        # Special case for a coordinator-level sensor attached to a stove device
-        if self._sensor == "number fail":
-            return self.coordinator.get_number_fail()
+    def native_value(self):
+        """Return the native value of the sensor."""
+        try:
+            # Special case for a coordinator-level sensor
+            if self._sensor == "number fail":
+                return self.coordinator.get_number_fail()
 
-        # For all other sensors, get the value from the stove object
-        command = SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")
-        if command:
-            return getattr(self._stove, command)()
-        return None
+            # Get the command method name from attributes
+            command = SENSOR_ATTRIBUTES.get(self._sensor, {}).get("command")
+            if not command:
+                return None
 
-    @property
-    def unit_of_measurement(self):
-        return SENSOR_ATTRIBUTES.get(self._sensor, {}).get("unit")
+            # Get the raw value from the stove
+            value = getattr(self._stove, command)()
+            if value is None:
+                return None
 
-    @property
-    def icon(self):
-        return SENSOR_ATTRIBUTES.get(self._sensor, {}).get("icon")
+            # Pour les capteurs cumulatifs (avec state_class TOTAL_INCREASING)
+            if self._attr_state_class == SensorStateClass.TOTAL_INCREASING:
+                try:
+                    return int(float(value))
+                except (ValueError, TypeError):
+                    _LOGGER.error(f"Invalid value for total_increasing sensor {self._sensor}: {value}")
+                    return None
 
-    @property
-    def entity_category(self):
-        return SENSOR_ATTRIBUTES.get(self._sensor, {}).get("category")
+            return value
+
+        except Exception as e:
+            _LOGGER.error(f"Error getting native value for sensor {self._sensor}: {e}")
+            return None
 
     @property
     def translation_key(self):

@@ -132,21 +132,40 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         return True
 
     def get_stove_state(self, stove_id):
-        try:
-            self.connect() # Ensure connection
-            url = STATUS_URL.format(stove_id=stove_id) + f'?nocache={int(time.time())}'
-            response = self._client.get(url, timeout=10)
-            response.raise_for_status() # Raise an exception for HTTP error codes
-            data = response.json()
-            _LOGGER.debug(f'get_stove_state for {stove_id}: {str(data)}...')
-            return data
-        except requests.exceptions.Timeout:
-            _LOGGER.warning(f"Timeout getting state for stove {stove_id}")
-        except requests.exceptions.RequestException as e:
-            _LOGGER.error(f"RequestException getting state for stove {stove_id}: {e}")
-        except ValueError: # JSON decoding error
-            _LOGGER.error(f"Error decoding JSON for stove {stove_id} state")
-        return None # Return None in case of error
+        MAX_RETRIES = 3
+        for attempt in range(MAX_RETRIES):
+            try:
+                self.connect() # Ensure connection
+                url = STATUS_URL.format(stove_id=stove_id) + f'?nocache={int(time.time())}'
+                response = self._client.get(url, timeout=10)
+                response.raise_for_status() # Raise an exception for HTTP error codes
+                data = response.json()
+                
+                # Validation des données critiques pour les statistiques
+                if 'sensors' in data:
+                    sensors = data['sensors']
+                    critical_fields = ['parameterFeedRateTotal', 'parameterRuntimePellets', 'parameterRuntimeLogs']
+                    for field in critical_fields:
+                        if field in sensors and sensors[field] is not None:
+                            try:
+                                int(sensors[field])  # Vérifier que la valeur peut être convertie en entier
+                            except (ValueError, TypeError):
+                                _LOGGER.warning(f"Invalid {field} value in stove {stove_id} state: {sensors[field]}")
+                                data['sensors'][field] = None  # Invalider la valeur
+                
+                _LOGGER.debug(f'get_stove_state for {stove_id}: {str(data)}...')
+                return data
+            except requests.exceptions.Timeout:
+                _LOGGER.warning(f"Timeout getting state for stove {stove_id} (attempt {attempt + 1}/{MAX_RETRIES})")
+            except requests.exceptions.RequestException as e:
+                _LOGGER.error(f"RequestException getting state for stove {stove_id} (attempt {attempt + 1}/{MAX_RETRIES}): {e}")
+            except ValueError: # JSON decoding error
+                _LOGGER.error(f"Error decoding JSON for stove {stove_id} state (attempt {attempt + 1}/{MAX_RETRIES})")
+            
+            if attempt < MAX_RETRIES - 1:  # Ne pas attendre après la dernière tentative
+                time.sleep(2)  # Attendre 2 secondes avant de réessayer
+                
+        return None # Return None après l'échec de toutes les tentatives
 
     def setup_stoves(self):
         self.connect()
