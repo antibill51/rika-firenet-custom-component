@@ -213,11 +213,12 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                     # _LOGGER.debug(f"Syncing state for stove {stove.get_id()}") # Removed, sync_state logs itself
                     stove.sync_state() # Retrieves and updates the stove's state
 
-                # Restart logic (may require more advanced management for the ON->OFF->ON sequence)
+                # Restart logic 
                 current_stove_state = stove.get_state()
                 if current_stove_state and stove.get_main_state() == 6 and stove.is_stove_on():
-                    _LOGGER.info(f'Stove {stove.get_id()} (mainState=6 and On) may need a restart. Turning off.')
-                    stove.set_stove_on_off(False) # This will mark _controls_changed for the next cycle
+                    _LOGGER.info(f'Stove {stove.get_id()} (mainState=6 and On) may need a restart.')
+                    stove.set_stove_on_off(False) 
+                    stove.set_stove_on_off(True)
             except Exception as e:
                 _LOGGER.error(f"Error processing stove {stove.get_id()} in coordinator update: {e}", exc_info=True)
 
