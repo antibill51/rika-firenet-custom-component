@@ -56,7 +56,8 @@
           "smoke_fan": "Fehler Abgasgebläse",
           "error": "Fehler",
           "empty_tank": "Tank leer",
-          "pellet_lid_open": "Pelletdeckel offen"
+          "pellet_lid_open": "Pelletdeckel offen",
+          "not_ignited": "Nicht gezündet"
         }
       }
     },

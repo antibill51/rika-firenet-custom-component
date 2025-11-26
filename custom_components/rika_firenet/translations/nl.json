@@ -56,7 +56,8 @@
           "smoke_fan": "Fout rookventilator",
           "error": "Fout",
           "empty_tank": "Lege tank",
-          "pellet_lid_open": "Deksel pelletreservoir open"
+          "pellet_lid_open": "Deksel pelletreservoir open",
+          "not_ignited": "Niet ontstoken"
         }
       }
     },

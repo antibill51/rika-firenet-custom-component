@@ -272,6 +272,8 @@ STATUS_RULES = [
      lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Error.svg", "Error"]),
     (lambda s: s.get_status_error() == 1 and s.get_status_sub_error() == 2,
      lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Empty.svg", "empty_tank"]),
+    (lambda s: s.get_status_error() == 8 and s.get_status_sub_error() == 16,
+     lambda s: ["https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/images/status/Visu_Error.svg", "not_ignited"]),
     (lambda s: s.get_status_error() == 1,
      lambda s: ["/", "statusSubError" + str(s.get_status_sub_error())]),
     (lambda s: s.get_status_error() == 32768,
