@@ -1,5 +1,5 @@
 import logging
-from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE, REVOLUTIONS_PER_MINUTE
+from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 
