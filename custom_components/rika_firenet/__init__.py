@@ -1,6 +1,6 @@
-import asyncio
 import logging
 import requests.exceptions
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -18,15 +18,17 @@ from .const import (
 from .core import RikaFirenetCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# CONFIG_SCHEMA est déprécié pour les intégrations configurées via UI,
+# mais on le laisse vide pour éviter des erreurs si HA le cherche.
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
-
 async def async_setup(hass: HomeAssistant, config: dict):
-    _LOGGER.info("setup_platform()")
+    """Set up the Rika Firenet component."""
     return True
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Set up Rika Firenet from a config entry."""
     _LOGGER.info("async_setup_entry(): %s", entry.entry_id)
 
     if DOMAIN not in hass.data:
@@ -43,11 +45,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     try:
-        await hass.async_add_executor_job(coordinator.setup)
+        # 'setup' contient des appels réseaux bloquants (requests),
+        # donc on l'exécute dans un thread séparé (executor).
+        await hass.async_add_executor_job(coordinator.setup)        
         await coordinator.async_refresh()
 
         if not coordinator.last_update_success:
-            raise ConfigEntryNotReady
+            raise ConfigEntryNotReady("Coordinator update failed")
 
     except requests.exceptions.Timeout as ex:
         _LOGGER.warning("Timeout during Rika Firenet setup: %s", ex)
@@ -55,36 +59,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     except Exception as ex:
         _LOGGER.exception("Unexpected error during Rika Firenet setup: %s", ex)
-        raise ConfigEntryNotReady from ex # Re-raise with original exception
+        raise ConfigEntryNotReady from ex
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Filter platforms based on options and forward the setup.
+    # On active uniquement les plateformes nécessaires
     enabled_platforms = [
         platform for platform in PLATFORMS if entry.options.get(platform, True)
     ]
     await hass.config_entries.async_forward_entry_setups(entry, enabled_platforms)
 
-    entry.add_update_listener(_async_options_updated)
+    # On attache le listener pour les mises à jour d'options
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    
     return True
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Handle removal of an entry."""
     _LOGGER.info("Unloading entry: %s", entry.entry_id)
+    
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
+        
     return unloaded
-
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
     _LOGGER.info("Options updated for entry: %s", entry.entry_id)
-    await async_reload_entry(hass, entry)
-
-
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await hass.config_entries.async_reload(entry.entry_id)

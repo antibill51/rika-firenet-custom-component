@@ -1,24 +1,31 @@
-from homeassistant.components.climate.const import (PRESET_COMFORT,
-                                                    PRESET_NONE)
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    Platform,
+)
+from homeassistant.components.climate.const import (
+    PRESET_COMFORT,
+    PRESET_NONE,
+)
 
 # Configuration
 CONF_ENABLED = "enabled"
-CONF_USERNAME = "username"
-CONF_PASSWORD = "password"
+# CONF_USERNAME et CONF_PASSWORD sont importés depuis homeassistant.const
 CONF_DEFAULT_TEMPERATURE = "defaultTemperature"
 CONF_DEFAULT_SCAN_INTERVAL  = "defaultScanInterval"
 DATA = "data"
 UPDATE_TRACK = "update_track"
 
 # Platforms
-CLIMATE = "climate"
-SENSOR = "sensor"
-SWITCH = "switch"
-NUMBER = "number"
-PLATFORMS = [CLIMATE, SENSOR, SWITCH, NUMBER]
+# Utilisation de l'enum Platform (standard moderne)
+PLATFORMS = [
+    Platform.CLIMATE,
+    Platform.SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+]
 
 # Types
-
 SUPPORT_PRESET = [PRESET_NONE, PRESET_COMFORT]
 
 # API Endpoints

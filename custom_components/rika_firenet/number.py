@@ -1,5 +1,4 @@
 import logging
-
 from homeassistant.const import PERCENTAGE, UnitOfTemperature
 from .entity import RikaFirenetEntity
 from homeassistant.components.number import NumberEntity
@@ -18,16 +17,14 @@ NUMBER_CONFIG = {
     "convection fan1 area":         {"min": -30,"max": 30,  "step": 1, "unit": PERCENTAGE,               "icon": "mdi:arrow-split-horizontal", "command_get": "get_convection_fan1_area",         "command_set": "set_convection_fan1_area", "int_value": True},
     "convection fan2 level":        {"min": 0,  "max": 5,   "step": 1, "unit": None,                     "icon": "mdi:fan",            "command_get": "get_convection_fan2_level",        "command_set": "set_convection_fan2_level", "int_value": True},
     "convection fan2 area":         {"min": -30,"max": 30,  "step": 1, "unit": PERCENTAGE,               "icon": "mdi:arrow-split-horizontal", "command_get": "get_convection_fan2_area",         "command_set": "set_convection_fan2_area", "int_value": True},
-    "set back temperature":         {"min": 12, "max": 20,  "step": 1, "unit": UnitOfTemperature.CELSIUS,"icon": "mdi:thermometer-minus","command_get": "get_stove_set_back_temperature",   "command_set": "set_stove_set_back_temperature", "int_value": False}, # API might expect float
+    "set back temperature":         {"min": 12, "max": 20,  "step": 1, "unit": UnitOfTemperature.CELSIUS,"icon": "mdi:thermometer-minus","command_get": "get_stove_set_back_temperature",   "command_set": "set_stove_set_back_temperature", "int_value": False},
     "set frost protection temperature": {"min": 4, "max": 10, "step": 1, "unit": UnitOfTemperature.CELSIUS,"icon": "mdi:snowflake-thermometer", "command_get": "get_frost_protection_temperature", "command_set": "set_frost_protection_temperature", "int_value": True},
     "temperature offset":           {"min": -4, "max": 4,   "step": 0.1,"unit": UnitOfTemperature.CELSIUS,"icon": "mdi:thermometer-plus", "command_get": "get_temperatureOffset",            "command_set": "set_temperatureOffset", "int_value": False},
 }
 
-# Default values if a number type is not in NUMBER_CONFIG
 DEFAULT_NUMBER_MIN = 0
 DEFAULT_NUMBER_MAX = 100
 DEFAULT_NUMBER_STEP = 1
-
 
 def get_number_device_list(stove: RikaFirenetStove) -> list[str]:
     """Return the list of number entities for a given stove."""
@@ -49,7 +46,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     coordinator: RikaFirenetCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     stove_entities = []
-    # Create 'number' entities for each stove
     for stove in coordinator.get_stoves():
         device_numbers_for_stove = get_number_device_list(stove)
         stove_entities.extend(
@@ -61,7 +57,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     if stove_entities:
         async_add_entities(stove_entities, True)
-
 
 class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, number):
@@ -95,21 +90,24 @@ class RikaFirenetStoveNumber(RikaFirenetEntity, NumberEntity):
 
     @property
     def icon(self):
-        return self._config.get("icon", "mdi:numeric") # Default icon if not specified
+        return self._config.get("icon", "mdi:numeric")
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
         _LOGGER.info(f"Setting native value for {self.name} ({self._number}) to: {value}")
-        command_set = self._config.get("command_set")
-        if command_set:
-            # Determine if the value should be an int or float based on config
-            is_int_value = self._config.get("int_value", False) # Default to float if not specified
-            processed_value = int(value) if is_int_value else float(value)
-            getattr(self._stove, command_set)(processed_value)
-        else:
+        command_set_name = self._config.get("command_set")
+        
+        if not command_set_name:
             _LOGGER.warning(f"No set command configured for number entity: {self._number}")
             return
+
+        is_int_value = self._config.get("int_value", False)
+        processed_value = int(value) if is_int_value else float(value)
         
-        # The methods above on self._stove mark _controls_changed = True
-        # Ask the coordinator to send the command and refresh
-        await self.coordinator.async_request_refresh()
+        method = getattr(self._stove, command_set_name)
+        
+        try:
+            await self.hass.async_add_executor_job(method, processed_value)
+            await self.coordinator.async_request_refresh()
+        except Exception as e:
+            _LOGGER.error("Error setting value %s for %s: %s", processed_value, self._number, e)

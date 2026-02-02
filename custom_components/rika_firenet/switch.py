@@ -25,9 +25,24 @@ SWITCH_CONFIG = {
         "turn_off": ("turn_on_off_frost_protection", False),
         "icon": "hass:snowflake-check",
     },
-    "eco mode": {"is_on": "is_stove_eco_mode", "turn_on": ("turn_on_off_eco_mode", True), "turn_off": ("turn_on_off_eco_mode", False), "icon": "hass:leaf"},
-    "convection fan1": {"is_on": "is_stove_convection_fan1_on", "turn_on": ("turn_convection_fan1_on_off", True), "turn_off": ("turn_convection_fan1_on_off", False), "icon": "hass:fan"},
-    "convection fan2": {"is_on": "is_stove_convection_fan2_on", "turn_on": ("turn_convection_fan2_on_off", True), "turn_off": ("turn_convection_fan2_on_off", False), "icon": "hass:fan"},
+    "eco mode": {
+        "is_on": "is_stove_eco_mode",
+        "turn_on": ("turn_on_off_eco_mode", True),
+        "turn_off": ("turn_on_off_eco_mode", False),
+        "icon": "hass:leaf"
+    },
+    "convection fan1": {
+        "is_on": "is_stove_convection_fan1_on",
+        "turn_on": ("turn_convection_fan1_on_off", True),
+        "turn_off": ("turn_convection_fan1_on_off", False),
+        "icon": "hass:fan"
+    },
+    "convection fan2": {
+        "is_on": "is_stove_convection_fan2_on",
+        "turn_on": ("turn_convection_fan2_on_off", True),
+        "turn_off": ("turn_convection_fan2_on_off", False),
+        "icon": "hass:fan"
+    },
 }
 
 BASE_DEVICE_SWITCHES = ["on off", "heating times", "frost protection"]
@@ -63,7 +78,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     if stove_entities:
         async_add_entities(stove_entities, True)
 
-
 class RikaFirenetStoveSwitch(RikaFirenetEntity, SwitchEntity):
     def __init__(self, config_entry, stove: RikaFirenetStove, coordinator: RikaFirenetCoordinator, switch_type):
         super().__init__(config_entry, stove, coordinator, switch_type)
@@ -94,9 +108,12 @@ class RikaFirenetStoveSwitch(RikaFirenetEntity, SwitchEntity):
 
         method_name, *args = command_info
         method = getattr(self._stove, method_name)
-        method(*args)
 
-        await self.coordinator.async_request_refresh()
+        try:
+            await self.hass.async_add_executor_job(method, *args)
+            await self.coordinator.async_request_refresh()
+        except Exception as e:
+            _LOGGER.error("Error executing command %s: %s", method_name, e)
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the entity on."""

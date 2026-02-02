@@ -15,7 +15,6 @@ from .core import RikaFirenetCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
@@ -27,10 +26,6 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
         self._errors = {}
-
-        # Allow only a single instance of the integration
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
             valid = await self._test_credentials(
@@ -68,7 +63,6 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def _test_credentials(self, username, password):
         """Return true if credentials is valid."""
         try:
-            # Use the static method for a clean, isolated authentication test.
             return await self.hass.async_add_executor_job(
                 RikaFirenetCoordinator.test_authentication, username, password
             )
@@ -76,13 +70,12 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("test_credentials_exception")
             return False
 
-
 class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for RikaFirenet."""
 
     def __init__(self, config_entry):
         """Initialize RikaFirenet options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
         self.options = dict(config_entry.options)
 
     async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
@@ -119,11 +112,5 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
     async def _update_options(self):
         """Update config entry options."""
         return self.async_create_entry(
-            title=self.config_entry.title, data=self.options
+            title=self._config_entry.title, data=self.options
         )
-
-    @staticmethod
-    @callback
-    def async_options_flow(config_entry):
-        """Return an options flow handler."""
-        return RikaFirenetOptionsFlowHandler(config_entry)
