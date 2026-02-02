@@ -1,7 +1,7 @@
 {
   "domain": "rika_firenet",
   "name": "Rika Firenet",
-  "codeowners": ["@Fockaert,@antibill51"],
+  "codeowners": ["@antibill51"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/antibill51/rika-firenet-custom-component/",
@@ -11,5 +11,5 @@
     "bs4",
     "requests"
   ],
-  "version": "2.29.38"
+  "version": "2.29.39"
 }
