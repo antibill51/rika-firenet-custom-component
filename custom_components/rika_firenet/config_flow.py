@@ -44,15 +44,22 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        return RikaFirenetOptionsFlowHandler(config_entry)
+        return RikaFirenetOptionsFlowHandler()
 
     async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
         """Show the configuration form to edit data."""
         if user_input is None:
             user_input = {}
+            
+        default_username = user_input.get(CONF_USERNAME, "")
+        if default_username is None: default_username = ""
+        
+        default_password = user_input.get(CONF_PASSWORD, "")
+        if default_password is None: default_password = ""
+
         schema_properties = {
-            vol.Required(CONF_USERNAME, default=user_input.get(CONF_USERNAME, None)): str,
-            vol.Required(CONF_PASSWORD, default=user_input.get(CONF_PASSWORD, None)): str,
+            vol.Required(CONF_USERNAME, default=default_username): str,
+            vol.Required(CONF_PASSWORD, default=default_password): str,
         }
         return self.async_show_form(
             step_id="user",
@@ -70,47 +77,48 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.exception("test_credentials_exception")
             return False
 
+
 class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for RikaFirenet."""
-
-    def __init__(self, config_entry):
-        """Initialize RikaFirenet options flow."""
-        self._config_entry = config_entry
-        self.options = dict(config_entry.options)
-
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
-        """Initialize options flow."""
-        return await self.async_step_user(user_input)
-
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
+    
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
         if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
+            options = dict(self.config_entry.options)
+            options.update(user_input)
+            return self.async_create_entry(title="", data=options)
+
+        options = dict(self.config_entry.options)
+        
+        current_temp = options.get(CONF_DEFAULT_TEMPERATURE, 21)
+        if not isinstance(current_temp, int): current_temp = 21
+        
+        current_scan = options.get(CONF_DEFAULT_SCAN_INTERVAL, 15)
+        if not isinstance(current_scan, int): current_scan = 15
 
         schema_properties = {
             vol.Required(
                 CONF_DEFAULT_TEMPERATURE,
-                default=self.options.get(CONF_DEFAULT_TEMPERATURE, 21),
+                default=current_temp,
             ): int,
             vol.Required(
                 CONF_DEFAULT_SCAN_INTERVAL,
-                default=self.options.get(CONF_DEFAULT_SCAN_INTERVAL, 15),
+                default=current_scan,
             ): int,
         }
-        schema_properties.update(
-            {
-                vol.Required(x, default=self.options.get(x, True)): bool
-                for x in sorted(PLATFORMS)
-            }
-        )
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(schema_properties),
-        )
+        
+        for platform in sorted(PLATFORMS):
+            platform_id = str(platform)
+            
+            current_value = options.get(platform_id, True)
+            if not isinstance(current_value, bool):
+                current_value = True
+                
+            schema_properties[
+                vol.Required(platform_id, default=current_value)
+            ] = bool
 
-    async def _update_options(self):
-        """Update config entry options."""
-        return self.async_create_entry(
-            title=self._config_entry.title, data=self.options
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema_properties),
         )
