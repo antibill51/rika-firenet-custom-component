@@ -356,7 +356,7 @@ More examples are in HA config folder. (lovelace / automations / ...)
 
 rika_domo: name of the stove from this component. Replace with your's.
 
-climate.rika: PID thermostat using https://github.com/ScratMan/HASmartThermostat.
+climate.rika: PID thermostat using https://github.com/antibill51/HASmartThermostat.
 climate.rika_z2: PID thermostat for multiair2.
 
 If I forgot elements, ask for it ;)
