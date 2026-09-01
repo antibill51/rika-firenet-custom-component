@@ -35,7 +35,7 @@ SUMMARY_URL = f"{BASE_URL}/web/summary"
 STATUS_URL = f"{BASE_URL}/api/client/{{stove_id}}/status"
 CONTROLS_URL = f"{BASE_URL}/api/client/{{stove_id}}/controls"
 
-VERSION = "2.29.39"
+VERSION = "2.29.40"
 DOMAIN = "rika_firenet"
 
 UNIQUE_ID = "unique_id"

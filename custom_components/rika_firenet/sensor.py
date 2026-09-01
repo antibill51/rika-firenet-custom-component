@@ -1,7 +1,16 @@
 import logging
-from homeassistant.const import UnitOfTemperature, UnitOfTime, UnitOfMass, PERCENTAGE
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
+from homeassistant.const import (
+    EntityCategory,
+    PERCENTAGE,
+    UnitOfMass,
+    UnitOfTemperature,
+    UnitOfTime,
+)
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 
 from .entity import RikaFirenetEntity
 from .const import DOMAIN

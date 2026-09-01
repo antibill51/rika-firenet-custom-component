@@ -110,7 +110,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def connect(self):
         if not self.is_authenticated():
             data = {'email': self._username, 'password': self._password}
-            response = self._client.post(LOGIN_URL, data)
+            response = self._client.post(LOGIN_URL, data, timeout=10)
             if '/logout' not in response.text:
                 raise Exception('Failed to connect with Rika Firenet')
             _LOGGER.info('Connected to Rika Firenet')
