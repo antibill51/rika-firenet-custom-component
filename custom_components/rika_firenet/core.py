@@ -205,33 +205,28 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                             stove.update_internal_state(updated_state_after_send) # Update the stove's internal state
                             stove.clear_pending_changes() # Mark changes as sent
                         else:
-                            _LOGGER.warning(f"Failed to send controls for stove {stove.get_id()}, changes remain pending. Will retry on next update.")
-                            # Do not clear pending changes so they are retried
+                            _LOGGER.warning(f"Failed to send controls for stove {stove.get_id()} after retries. Clearing pending changes and resyncing state.")
+                            stove.clear_pending_changes()
+                            stove.sync_state()
                     else:
-                         _LOGGER.warning(f"Cannot send controls for stove {stove.get_id()} because control state is missing.")
+                        _LOGGER.warning(f"Cannot send controls for stove {stove.get_id()} because control state is missing. Resyncing.")
+                        stove.clear_pending_changes()
+                        stove.sync_state()
                 else:
                     # _LOGGER.debug(f"Syncing state for stove {stove.get_id()}") # Removed, sync_state logs itself
                     stove.sync_state() # Retrieves and updates the stove's state
-
-                # Restart logic 
-                current_stove_state = stove.get_state()
-                if current_stove_state and stove.get_main_state() == 6 and stove.is_stove_on():
-                    _LOGGER.info(f'Stove {stove.get_id()} (mainState=6 and On) may need a restart.')
-                    stove.set_stove_on_off(False) 
-                    stove.set_stove_on_off(True)
             except Exception as e:
                 _LOGGER.error(f"Error processing stove {stove.get_id()} in coordinator update: {e}", exc_info=True)
 
     def set_stove_controls(self, stove_id, controls):
         _LOGGER.debug(f"set_stove_controls for {stove_id}, data: {str(controls)}")
-        # Ensure revision is present if the API requires it
-        if 'revision' not in controls:
-            current_state = self.get_stove_state(stove_id)
-            if current_state and 'controls' in current_state and 'revision' in current_state['controls']:
-                controls['revision'] = current_state['controls']['revision']
-                _LOGGER.debug(f"Added revision {controls['revision']} to controls for {stove_id}")
-            else:
-                _LOGGER.warning(f"Could not get revision for stove {stove_id}. Sending controls without it.")
+        # Always obtain the fresh revision from the cloud to prevent 404 Outdated Revision
+        current_state = self.get_stove_state(stove_id)
+        if current_state and 'controls' in current_state and 'revision' in current_state['controls']:
+            controls['revision'] = current_state['controls']['revision']
+            _LOGGER.debug(f"Refreshed revision to {controls['revision']} for stove {stove_id}")
+        elif 'revision' not in controls:
+            _LOGGER.warning(f"Could not get revision for stove {stove_id}. Sending controls without it.")
 
         for attempt in range(3): # Reduce the number of attempts for faster feedback
             _LOGGER.info(f'Attempting to update stove {stove_id} controls ({attempt + 1}/3)')
@@ -251,14 +246,15 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
             # This block runs if the update was not successful (not "OK" or a network error)
             self._number_fail += 1
-            time.sleep(5)
-            # Update revision before the next attempt, as it might have changed
-            current_state_for_rev = self.get_stove_state(stove_id)
-            if current_state_for_rev and 'controls' in current_state_for_rev and 'revision' in current_state_for_rev['controls']:
-                controls['revision'] = current_state_for_rev['controls']['revision']
-                _LOGGER.info(f"Updated revision to {controls['revision']} for stove {stove_id} before retry.")
-            else:
-                _LOGGER.warning(f"Could not get new revision for stove {stove_id} before retry.")
+            if attempt < 2:
+                time.sleep(2)
+                # Update revision before the next attempt, as it might have changed
+                current_state_for_rev = self.get_stove_state(stove_id)
+                if current_state_for_rev and 'controls' in current_state_for_rev and 'revision' in current_state_for_rev['controls']:
+                    controls['revision'] = current_state_for_rev['controls']['revision']
+                    _LOGGER.info(f"Updated revision to {controls['revision']} for stove {stove_id} before retry.")
+                else:
+                    _LOGGER.warning(f"Could not get new revision for stove {stove_id} before retry.")
         _LOGGER.error(f'Failed to update stove {stove_id} controls after 3 attempts')
         return None # Indicate persistent failure
 
