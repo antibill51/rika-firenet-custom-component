@@ -21,6 +21,7 @@ UPDATE_TRACK = "update_track"
 PLATFORMS = [
     Platform.CLIMATE,
     Platform.SENSOR,
+    Platform.BINARY_SENSOR,
     Platform.SWITCH,
     Platform.NUMBER,
 ]
@@ -35,7 +36,7 @@ SUMMARY_URL = f"{BASE_URL}/web/summary"
 STATUS_URL = f"{BASE_URL}/api/client/{{stove_id}}/status"
 CONTROLS_URL = f"{BASE_URL}/api/client/{{stove_id}}/controls"
 
-VERSION = "2.29.41"
+VERSION = "2.29.42"
 DOMAIN = "rika_firenet"
 
 UNIQUE_ID = "unique_id"

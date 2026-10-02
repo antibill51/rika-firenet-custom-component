@@ -25,6 +25,7 @@
           "defaultScanInterval": "Default scan interval (15 seconds)",
           "climate": "Climate enabled",
           "sensor": "Sensor enabled",
+          "binary_sensor": "Binary sensor enabled",
           "switch": "Switch enabled",
           "number": "Number enabled"
         }
@@ -32,7 +33,24 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "door": {
+        "name": "Door"
+      },
+      "pellet lid": {
+        "name": "Pellet lid"
+      },
+      "grid contact": {
+        "name": "Grid contact"
+      },
+      "external request": {
+        "name": "External request"
+      }
+    },
     "sensor": {
+      "wifi strength": {
+        "name": "Wi-Fi signal"
+      },
       "stove status": {
         "state": {
           "frost_protection": "Frost protection",

@@ -130,6 +130,14 @@ SENSOR_ATTRIBUTES = {
         "category": EntityCategory.DIAGNOSTIC,
         "command": "get_status_sub_error",
     },
+    "wifi strength": {
+        "unit": "dBm",
+        "icon": "mdi:wifi",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_wifi_strength",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "device_class": SensorDeviceClass.SIGNAL_STRENGTH,
+    },
 }
 
 BASE_DEVICE_SENSORS = [
@@ -148,7 +156,8 @@ BASE_DEVICE_SENSORS = [
     "sub state",
     "statusError",
     "statusSubError",
-    "statusWarning"
+    "statusWarning",
+    "wifi strength",
 ]
 
 def get_sensor_device_list(stove: RikaFirenetStove) -> list[str]:
@@ -188,7 +197,6 @@ class RikaFirenetStoveSensor(RikaFirenetEntity, SensorEntity):
         """Initialise le capteur."""
         super().__init__(config_entry, stove, coordinator, sensor)
         self._sensor = sensor
-        self._attr_has_entity_name = True
         
         # Définir directement les attributs d'état
         sensor_attrs = SENSOR_ATTRIBUTES.get(sensor, {})

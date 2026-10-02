@@ -205,9 +205,20 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                             stove.update_internal_state(updated_state_after_send) # Update the stove's internal state
                             stove.clear_pending_changes() # Mark changes as sent
                         else:
-                            _LOGGER.warning(f"Failed to send controls for stove {stove.get_id()} after retries. Clearing pending changes and resyncing state.")
-                            stove.clear_pending_changes()
-                            stove.sync_state()
+                            elapsed = time.time() - (stove.get_controls_changed_time() or time.time())
+                            MAX_PENDING_TIME = 300 # 5 minutes de réessai avant abandon
+                            if elapsed < MAX_PENDING_TIME:
+                                _LOGGER.warning(
+                                    f"Failed to send controls for stove {stove.get_id()} ({int(elapsed)}s/{MAX_PENDING_TIME}s). "
+                                    "Changes remain pending and will be retried on next update."
+                                )
+                            else:
+                                _LOGGER.error(
+                                    f"Failed to send controls for stove {stove.get_id()} after {int(elapsed)}s. "
+                                    "Clearing pending changes and resyncing state."
+                                )
+                                stove.clear_pending_changes()
+                                stove.sync_state()
                     else:
                         _LOGGER.warning(f"Cannot send controls for stove {stove.get_id()} because control state is missing. Resyncing.")
                         stove.clear_pending_changes()
@@ -317,6 +328,7 @@ class RikaFirenetStove:
         self._name = name
         self._state = None
         self._controls_changed = False # Change indicator for this stove
+        self._controls_changed_time = None
 
     def __repr__(self):
         return f'Stove(id={self._id}, name={self._name})'
@@ -332,11 +344,18 @@ class RikaFirenetStove:
     def clear_pending_changes(self):
         """Resets the pending changes indicator."""
         self._controls_changed = False
+        self._controls_changed_time = None
 
     def _mark_controls_changed(self):
         """Marks that controls have been modified and should be sent."""
         self._controls_changed = True
+        if self._controls_changed_time is None:
+            self._controls_changed_time = time.time()
         _LOGGER.debug(f"Controls marked changed for stove {self._id}")
+
+    def get_controls_changed_time(self):
+        """Return the timestamp when controls were marked changed."""
+        return self._controls_changed_time
 
     def _set_control(self, key: str, value):
         """Helper to set a control value and mark for update."""
@@ -826,6 +845,58 @@ class RikaFirenetStove:
                 _LOGGER.warning(f"Invalid frostProtectionTemperature value for {self._id}: {value}")
                 return None
         return None
+
+    def get_firmware_version(self):
+        """Return the main board firmware version formatted (e.g. 228 -> '2.28')."""
+        if self._state and 'sensors' in self._state:
+            version_int = self._state['sensors'].get('parameterVersionMainBoard')
+            if version_int is not None:
+                try:
+                    v_str = str(version_int)
+                    if len(v_str) >= 2:
+                        return f"{v_str[0]}.{v_str[1:]}"
+                    return v_str
+                except Exception:
+                    return str(version_int)
+        return None
+
+    def get_wifi_strength(self):
+        """Return Wi-Fi signal strength in dBm."""
+        if self._state and 'sensors' in self._state:
+            val = self._state['sensors'].get('statusWifiStrength')
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    def is_door_closed(self):
+        """Return True if door is closed."""
+        if self._state and 'sensors' in self._state:
+            val = self._state['sensors'].get('inputDoor')
+            return bool(val) if val is not None else True
+        return True
+
+    def is_cover_closed(self):
+        """Return True if pellet cover/lid is closed."""
+        if self._state and 'sensors' in self._state:
+            val = self._state['sensors'].get('inputCover')
+            return bool(val) if val is not None else True
+        return True
+
+    def is_grid_contact_ok(self):
+        """Return True if grid contact is OK."""
+        if self._state and 'sensors' in self._state:
+            val = self._state['sensors'].get('inputGridContact')
+            return bool(val) if val is not None else True
+        return True
+
+    def is_external_request(self):
+        """Return True if external thermostat request contact is active."""
+        if self._state and 'sensors' in self._state:
+            val = self._state['sensors'].get('inputExternalRequest')
+            return bool(val) if val is not None else False
+        return False
 
     def get_status(self):
         """Return the status image and text key based on a set of rules."""

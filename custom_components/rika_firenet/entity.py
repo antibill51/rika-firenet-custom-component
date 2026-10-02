@@ -51,7 +51,7 @@ class RikaFirenetEntity(CoordinatorEntity[RikaFirenetCoordinator]):
             "name": self._stove.get_name(),
             "manufacturer": "Rika",
             "model": f"Firenet Stove ({stove_id_str})",
-            "sw_version": VERSION,
+            "sw_version": self._stove.get_firmware_version(),
         }
 
     @property

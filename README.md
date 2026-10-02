@@ -2,6 +2,14 @@
 
 _Component to integrate with Rika Firenet [rikafirenet]._
 
+## Avertissement & Philosophie / Disclaimer
+
+Ce composant a pour objectif d'assurer une passerelle directe et fidèle entre le service cloud [Rika Firenet](https://www.rika-firenet.com) et Home Assistant.
+
+> [!IMPORTANT]
+> **Ce composant ne modifie pas le fonctionnement fondamental ni les sécurités matérielles des poêles Rika.**
+> Sauf rares exceptions (restitution d'états spécifiques), il fait le lien fidèle entre le portail cloud et Home Assistant. Les modes de fonctionnement, les plages de réglage, les vitesses de ventilation et les cycles de fonctionnement (allumage, chauffe, nettoyage, fin de combustion `burn_off`, arrêt) sont strictement identiques à ceux proposés sur le poêle lui-même.
+
 ## Installation
 
 Use [hacs](https://hacs.xyz/). (Recommended method)
