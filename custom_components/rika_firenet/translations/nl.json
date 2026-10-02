@@ -2,16 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rika Firenet",
-        "description": "Installatie van Rika Firenet-integratie",
+        "title": "Rika Firenet Verbinding",
+        "description": "Configureer de verbinding met uw Rika Firenet-account om uw kachel te bedienen.",
         "data": {
-          "username": "Gebruikersnaam",
+          "username": "Gebruikersnaam (E-mail)",
           "password": "Wachtwoord"
+        },
+        "data_description": {
+          "username": "Het e-mailadres waarmee u inlogt op www.rika-firenet.com",
+          "password": "Het wachtwoord voor uw Rika Firenet-account"
         }
       }
     },
     "error": {
-      "auth": "Gebruikersnaam/Wachtwoord is onjuist."
+      "auth": "Gebruikersnaam of wachtwoord is onjuist."
     },
     "abort": {
       "single_instance_allowed": "Slechts één configuratie van Rika Firenet is toegestaan."
@@ -19,16 +23,52 @@
   },
   "options": {
     "step": {
-      "user": {
+      "init": {
+        "title": "Rika Firenet Opties",
+        "description": "Pas de bedrijfsparameters aan en kies welke entiteitstypen moeten worden weergegeven.",
         "data": {
-          "defaultTemperature": "Standaard temperatuur",
-          "defaultScanInterval": "Standaard scaninterval (15 seconden)",
-          "pendingTimeout": "Time-out voor opdrachten (seconden, standaard 300)",
-          "climate": "Klimaat ingeschakeld",
-          "sensor": "Sensor ingeschakeld",
-          "binary_sensor": "Binaire sensoren ingeschakeld",
-          "switch": "Schakelaar ingeschakeld",
-          "number": "Nummer ingeschakeld"
+          "defaultTemperature": "Standaard temperatuur (°C)",
+          "defaultScanInterval": "Scaninterval (seconden)",
+          "pendingTimeout": "Time-out voor opdrachten (seconden)",
+          "climate": "Thermostaat (Climate) inschakelen",
+          "sensor": "Meetsensoren (Sensor) inschakelen",
+          "binary_sensor": "Binaire sensoren (Binary sensor) inschakelen",
+          "switch": "Schakelaars (Switch) inschakelen",
+          "number": "Numerieke instellingen (Number) inschakelen"
+        },
+        "data_description": {
+          "defaultTemperature": "Standaard doeltemperatuur die als terugvalwaarde wordt gebruikt indien niet opgegeven (standaard: 21 °C).",
+          "defaultScanInterval": "Frequentie van gegevensopvraging bij de Rika-cloud (standaard: 15 seconden).",
+          "pendingTimeout": "Maximale wachttijd voor bevestiging door de kachel vóór melding en annulering (standaard: 300 s / 5 min).",
+          "climate": "Biedt de belangrijkste klimaatentiteit om modus, doeltemperatuur en status te regelen.",
+          "sensor": "Biedt sensoren: kamertemperatuur, pelletverbruik, vermogen, ventilatorsnelheid, enz.",
+          "binary_sensor": "Biedt binaire sensoren: deur open, pelletdeksel, wifi-signaal, netcontact, enz.",
+          "switch": "Biedt schakelaars: aan/uit, verwarmingstijden, convectieventilatoren.",
+          "number": "Biedt regelaars: verwarmingsvermogen, ventilatorzones, nachttemperatuur."
+        }
+      },
+      "user": {
+        "title": "Rika Firenet Opties",
+        "description": "Pas de bedrijfsparameters aan en kies welke entiteitstypen moeten worden weergegeven.",
+        "data": {
+          "defaultTemperature": "Standaard temperatuur (°C)",
+          "defaultScanInterval": "Scaninterval (seconden)",
+          "pendingTimeout": "Time-out voor opdrachten (seconden)",
+          "climate": "Thermostaat (Climate) inschakelen",
+          "sensor": "Meetsensoren (Sensor) inschakelen",
+          "binary_sensor": "Binaire sensoren (Binary sensor) inschakelen",
+          "switch": "Schakelaars (Switch) inschakelen",
+          "number": "Numerieke instellingen (Number) inschakelen"
+        },
+        "data_description": {
+          "defaultTemperature": "Standaard doeltemperatuur die als terugvalwaarde wordt gebruikt indien niet opgegeven (standaard: 21 °C).",
+          "defaultScanInterval": "Frequentie van gegevensopvraging bij de Rika-cloud (standaard: 15 seconden).",
+          "pendingTimeout": "Maximale wachttijd voor bevestiging door de kachel vóór melding en annulering (standaard: 300 s / 5 min).",
+          "climate": "Biedt de belangrijkste klimaatentiteit om modus, doeltemperatuur en status te regelen.",
+          "sensor": "Biedt sensoren: kamertemperatuur, pelletverbruik, vermogen, ventilatorsnelheid, enz.",
+          "binary_sensor": "Biedt binaire sensoren: deur open, pelletdeksel, wifi-signaal, netcontact, enz.",
+          "switch": "Biedt schakelaars: aan/uit, verwarmingstijden, convectieventilatoren.",
+          "number": "Biedt regelaars: verwarmingsvermogen, ventilatorzones, nachttemperatuur."
         }
       }
     }
@@ -41,24 +81,24 @@
           "stove_off": "Kachel uit",
           "standby": "Stand-by",
           "external_request": "Externe aanvraag",
-          "sub_state_unknown": "Substatus onbekend",
+          "sub_state_unknown": "Onbekende substatus",
           "ignition_on": "Ontsteking aan",
           "starting_up": "Opstarten",
-          "running": "In bedrijf",
+          "running": "In werking",
           "big_clean": "Grote reiniging",
           "clean": "Reiniging",
-          "burn_off": "Uitdoven",
-          "split_log_check": "Houtcontrole",
-          "split_log_mode": "Houtmodus",
-          "split_log_ecomode": "Eco-modus hout",
+          "burn_off": "Uitbranden",
+          "split_log_check": "Houtblokcontrole",
+          "split_log_mode": "Houtblokmodus",
+          "split_log_ecomode": "Houtblok eco-modus",
           "split_log_refuel": "Hout bijvullen",
-          "split_log_stop_refuel": "Niet opnieuw voeden",
+          "split_log_stop_refuel": "Niet meer bijvullen",
           "unknown": "Onbekend",
           "offline": "Offline",
-          "smoke_fan": "Fout rookventilator",
+          "smoke_fan": "Fout rookgasventilator",
           "error": "Fout",
-          "empty_tank": "Lege tank",
-          "pellet_lid_open": "Deksel pelletreservoir open",
+          "empty_tank": "Pelletreservoir leeg",
+          "pellet_lid_open": "Pelletdeksel open",
           "not_ignited": "Niet ontstoken"
         }
       }

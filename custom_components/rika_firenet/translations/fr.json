@@ -2,16 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rika Firenet",
-        "description": "Configurez l'intégration de Rika Firenet",
+        "title": "Connexion Rika Firenet",
+        "description": "Configurez la connexion avec votre compte Rika Firenet pour piloter votre poêle.",
         "data": {
-          "username": "Identifiant",
+          "username": "Identifiant (Email)",
           "password": "Mot de passe"
+        },
+        "data_description": {
+          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com",
+          "password": "Le mot de passe associé à votre compte Rika Firenet"
         }
       }
     },
     "error": {
-      "auth": "Email/Mot de passe erroné."
+      "auth": "Identifiant ou mot de passe incorrect."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée."
@@ -19,16 +23,52 @@
   },
   "options": {
     "step": {
-      "user": {
+      "init": {
+        "title": "Options Rika Firenet",
+        "description": "Ajustez les paramètres de fonctionnement et choisissez les types d'entités à exposer.",
         "data": {
-          "defaultTemperature": "Température par défaut",
-          "defaultScanInterval": "Intervalle par défaut (15 secondes)",
-          "pendingTimeout": "Délai d'attente des commandes (secondes, défaut 300)",
-          "climate": "Climate activé",
-          "sensor": "Sensor activé",
-          "binary_sensor": "Capteurs binaires activés",
-          "switch": "Switch activé",
-          "number": "Number activé"
+          "defaultTemperature": "Température par défaut (°C)",
+          "defaultScanInterval": "Intervalle d'actualisation (secondes)",
+          "pendingTimeout": "Délai de confirmation des commandes (secondes)",
+          "climate": "Activer le thermostat (Climate)",
+          "sensor": "Activer les capteurs de mesure (Sensor)",
+          "binary_sensor": "Activer les capteurs d'état (Binary sensor)",
+          "switch": "Activer les interrupteurs (Switch)",
+          "number": "Activer les réglages numériques (Number)"
+        },
+        "data_description": {
+          "defaultTemperature": "Température de consigne par défaut utilisée si non renseignée (défaut : 21 °C).",
+          "defaultScanInterval": "Fréquence de scrutation des données auprès du cloud Rika (défaut : 15 secondes).",
+          "pendingTimeout": "Délai maximal d'attente de confirmation par le cloud avant alerte et abandon (défaut : 300 s / 5 min).",
+          "climate": "Expose l'entité principale pour piloter le mode de chauffage, la consigne et le fonctionnement.",
+          "sensor": "Expose les capteurs : température ambiante, consommation de granulés, puissance, vitesse ventilateur, etc.",
+          "binary_sensor": "Expose les détecteurs : porte ouverte, trappe à granulés, signal Wi-Fi, contact réseau, etc.",
+          "switch": "Expose les commandes Tout-ou-Rien : marche/arrêt, programmation horaire, ventilateurs de convection.",
+          "number": "Expose les réglages numériques : puissance de chauffe, réglage des ventilateurs, température de veille."
+        }
+      },
+      "user": {
+        "title": "Options Rika Firenet",
+        "description": "Ajustez les paramètres de fonctionnement et choisissez les types d'entités à exposer.",
+        "data": {
+          "defaultTemperature": "Température par défaut (°C)",
+          "defaultScanInterval": "Intervalle d'actualisation (secondes)",
+          "pendingTimeout": "Délai de confirmation des commandes (secondes)",
+          "climate": "Activer le thermostat (Climate)",
+          "sensor": "Activer les capteurs de mesure (Sensor)",
+          "binary_sensor": "Activer les capteurs d'état (Binary sensor)",
+          "switch": "Activer les interrupteurs (Switch)",
+          "number": "Activer les réglages numériques (Number)"
+        },
+        "data_description": {
+          "defaultTemperature": "Température de consigne par défaut utilisée si non renseignée (défaut : 21 °C).",
+          "defaultScanInterval": "Fréquence de scrutation des données auprès du cloud Rika (défaut : 15 secondes).",
+          "pendingTimeout": "Délai maximal d'attente de confirmation par le cloud avant alerte et abandon (défaut : 300 s / 5 min).",
+          "climate": "Expose l'entité principale pour piloter le mode de chauffage, la consigne et le fonctionnement.",
+          "sensor": "Expose les capteurs : température ambiante, consommation de granulés, puissance, vitesse ventilateur, etc.",
+          "binary_sensor": "Expose les détecteurs : porte ouverte, trappe à granulés, signal Wi-Fi, contact réseau, etc.",
+          "switch": "Expose les commandes Tout-ou-Rien : marche/arrêt, programmation horaire, ventilateurs de convection.",
+          "number": "Expose les réglages numériques : puissance de chauffe, réglage des ventilateurs, température de veille."
         }
       }
     }

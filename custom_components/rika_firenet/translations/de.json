@@ -2,16 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rika Firenet",
-        "description": "Integrationseinrichtung mit Rika Firenet",
+        "title": "Rika Firenet Verbindung",
+        "description": "Richten Sie die Verbindung zu Ihrem Rika Firenet-Konto ein, um Ihren Ofen zu steuern.",
         "data": {
-          "username": "Benutzername",
+          "username": "Benutzername (E-Mail)",
           "password": "Passwort"
+        },
+        "data_description": {
+          "username": "Die für die Anmeldung auf www.rika-firenet.com verwendete E-Mail-Adresse",
+          "password": "Das Passwort für Ihr Rika Firenet-Konto"
         }
       }
     },
     "error": {
-      "auth": "Benutzername/Passwort ist falsch."
+      "auth": "Benutzername oder Passwort ist falsch."
     },
     "abort": {
       "single_instance_allowed": "Es ist nur eine einzelne Instanz der Integration erlaubt."
@@ -19,16 +23,52 @@
   },
   "options": {
     "step": {
-      "user": {
+      "init": {
+        "title": "Rika Firenet Optionen",
+        "description": "Passen Sie die Betriebsparameter an und wählen Sie, welche Entitätstypen bereitgestellt werden sollen.",
         "data": {
-          "defaultTemperature": "Standard-Temperatur (21°C)",
-          "defaultScanInterval": "Standard-Prüfintervall (15s)",
-          "pendingTimeout": "Befehls-Timeout (Sekunden, Standard 300)",
-          "climate": "Climate aktiv",
-          "sensor": "Sensor aktiv",
-          "binary_sensor": "Binäre Sensoren aktiv",
-          "switch": "Switch aktiv",
-          "number": "Number aktiv"
+          "defaultTemperature": "Standard-Temperatur (°C)",
+          "defaultScanInterval": "Abfrageintervall (Sekunden)",
+          "pendingTimeout": "Befehls-Timeout (Sekunden)",
+          "climate": "Thermostat (Climate) aktivieren",
+          "sensor": "Messsensoren (Sensor) aktivieren",
+          "binary_sensor": "Binäre Sensoren (Binary sensor) aktivieren",
+          "switch": "Schalter (Switch) aktivieren",
+          "number": "Numerische Steuerungen (Number) aktivieren"
+        },
+        "data_description": {
+          "defaultTemperature": "Standardmäßig verwendete Zieltemperatur, falls nicht anders angegeben (Standard: 21 °C).",
+          "defaultScanInterval": "Häufigkeit der Datenabfrage bei der Rika Cloud (Standard: 15 Sekunden).",
+          "pendingTimeout": "Maximale Wartezeit auf Bestätigung durch den Ofen vor Abbruch und Benachrichtigung (Standard: 300 s / 5 Min).",
+          "climate": "Aktiviert die Haupt-Klimaentität zur Steuerung von Modus, Solltemperatur und Status.",
+          "sensor": "Aktiviert Sensoren: Raumtemperatur, Pelletsverbrauch, Leistung, Lüfterdrehzahl usw.",
+          "binary_sensor": "Aktiviert Binärsensoren: Tür offen, Pelletdeckel, WLAN-Signal, Netzkontakt usw.",
+          "switch": "Aktiviert Schalter: Ein/Aus, Heizzeiten, Konvektionslüfter.",
+          "number": "Aktiviert Regler: Heizleistung, Gebläsebereiche, Absenktemperatur."
+        }
+      },
+      "user": {
+        "title": "Rika Firenet Optionen",
+        "description": "Passen Sie die Betriebsparameter an und wählen Sie, welche Entitätstypen bereitgestellt werden sollen.",
+        "data": {
+          "defaultTemperature": "Standard-Temperatur (°C)",
+          "defaultScanInterval": "Abfrageintervall (Sekunden)",
+          "pendingTimeout": "Befehls-Timeout (Sekunden)",
+          "climate": "Thermostat (Climate) aktivieren",
+          "sensor": "Messsensoren (Sensor) aktivieren",
+          "binary_sensor": "Binäre Sensoren (Binary sensor) aktivieren",
+          "switch": "Schalter (Switch) aktivieren",
+          "number": "Numerische Steuerungen (Number) aktivieren"
+        },
+        "data_description": {
+          "defaultTemperature": "Standardmäßig verwendete Zieltemperatur, falls nicht anders angegeben (Standard: 21 °C).",
+          "defaultScanInterval": "Häufigkeit der Datenabfrage bei der Rika Cloud (Standard: 15 Sekunden).",
+          "pendingTimeout": "Maximale Wartezeit auf Bestätigung durch den Ofen vor Abbruch und Benachrichtigung (Standard: 300 s / 5 Min).",
+          "climate": "Aktiviert die Haupt-Klimaentität zur Steuerung von Modus, Solltemperatur und Status.",
+          "sensor": "Aktiviert Sensoren: Raumtemperatur, Pelletsverbrauch, Leistung, Lüfterdrehzahl usw.",
+          "binary_sensor": "Aktiviert Binärsensoren: Tür offen, Pelletdeckel, WLAN-Signal, Netzkontakt usw.",
+          "switch": "Aktiviert Schalter: Ein/Aus, Heizzeiten, Konvektionslüfter.",
+          "number": "Aktiviert Regler: Heizleistung, Gebläsebereiche, Absenktemperatur."
         }
       }
     }
@@ -38,28 +78,28 @@
       "stove status": {
         "state": {
           "frost_protection": "Frostschutz",
-          "stove_off": "Ofen AUS",
+          "stove_off": "Ofen aus",
           "standby": "Standby",
           "external_request": "Externe Anforderung",
-          "sub_state_unknown": "Substatus unbekannt",
-          "ignition_on": "Zündung",
-          "starting_up": "Startphase",
-          "running": "Regelbetrieb",
-          "big_clean": "Gr. Reinigung",
+          "sub_state_unknown": "Unbekannter Unterzustand",
+          "ignition_on": "Zündung ein",
+          "starting_up": "Starten",
+          "running": "In Betrieb",
+          "big_clean": "Große Reinigung",
           "clean": "Reinigung",
           "burn_off": "Ausbrand",
-          "split_log_check": "Scheitholzcheck",
+          "split_log_check": "Scheitholzprüfung",
           "split_log_mode": "Scheitholzbetrieb",
-          "split_log_ecomode": "Scheitholz-Ökomodus",
-          "split_log_refuel": "Scheitholz nachfüllen",
-          "split_log_stop_refuel": "Kein Holz hinzufügen",
-          "unknown": "Unbekanntes Problem",
+          "split_log_ecomode": "Scheitholz Eco-Modus",
+          "split_log_refuel": "Holz nachlegen",
+          "split_log_stop_refuel": "Nicht mehr nachlegen",
+          "unknown": "Unbekannt",
           "offline": "Offline",
-          "smoke_fan": "Fehler Abgasgebläse",
+          "smoke_fan": "Fehler Rauchgasgebläse",
           "error": "Fehler",
-          "empty_tank": "Tank leer",
+          "empty_tank": "Behälter leer",
           "pellet_lid_open": "Pelletdeckel offen",
-          "not_ignited": "Nicht gezündet"
+          "not_ignited": "Keine Zündung"
         }
       }
     },

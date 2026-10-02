@@ -2,16 +2,20 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rika Firenet",
-        "description": "Setup integration with Rika Firenet",
+        "title": "Rika Firenet Connection",
+        "description": "Configure the connection with your Rika Firenet account to control your stove.",
         "data": {
-          "username": "Username",
+          "username": "Username (Email)",
           "password": "Password"
+        },
+        "data_description": {
+          "username": "The email address used to log in at www.rika-firenet.com",
+          "password": "The password for your Rika Firenet account"
         }
       }
     },
     "error": {
-      "auth": "Username/Password is wrong."
+      "auth": "Incorrect username or password."
     },
     "abort": {
       "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed."
@@ -19,16 +23,52 @@
   },
   "options": {
     "step": {
-      "user": {
+      "init": {
+        "title": "Rika Firenet Options",
+        "description": "Adjust operational settings and choose which entity types to expose.",
         "data": {
-          "defaultTemperature": "Default temperature",
-          "defaultScanInterval": "Default scan interval (15 seconds)",
-          "pendingTimeout": "Command confirmation timeout (seconds, default 300)",
-          "climate": "Climate enabled",
-          "sensor": "Sensor enabled",
-          "binary_sensor": "Binary sensors enabled",
-          "switch": "Switch enabled",
-          "number": "Number enabled"
+          "defaultTemperature": "Default temperature (°C)",
+          "defaultScanInterval": "Scan interval (seconds)",
+          "pendingTimeout": "Command confirmation timeout (seconds)",
+          "climate": "Enable climate entity",
+          "sensor": "Enable measurement sensors",
+          "binary_sensor": "Enable binary sensors",
+          "switch": "Enable control switches",
+          "number": "Enable numeric adjustments"
+        },
+        "data_description": {
+          "defaultTemperature": "Fallback setpoint temperature used by default if not specified (default: 21 °C).",
+          "defaultScanInterval": "Polling frequency from the Rika Firenet cloud (default: 15 seconds).",
+          "pendingTimeout": "Maximum timeout before alert and abort if stove does not confirm commands (default: 300 s / 5 min).",
+          "climate": "Exposes the main climate entity to control mode, target temperature, and state.",
+          "sensor": "Exposes sensors: room temperature, pellet consumption, power, fan velocity, etc.",
+          "binary_sensor": "Exposes binary sensors: door open, pellet lid, Wi-Fi signal, grid contact, etc.",
+          "switch": "Exposes on/off controls: stove on/off, heating times, convection fans.",
+          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature."
+        }
+      },
+      "user": {
+        "title": "Rika Firenet Options",
+        "description": "Adjust operational settings and choose which entity types to expose.",
+        "data": {
+          "defaultTemperature": "Default temperature (°C)",
+          "defaultScanInterval": "Scan interval (seconds)",
+          "pendingTimeout": "Command confirmation timeout (seconds)",
+          "climate": "Enable climate entity",
+          "sensor": "Enable measurement sensors",
+          "binary_sensor": "Enable binary sensors",
+          "switch": "Enable control switches",
+          "number": "Enable numeric adjustments"
+        },
+        "data_description": {
+          "defaultTemperature": "Fallback setpoint temperature used by default if not specified (default: 21 °C).",
+          "defaultScanInterval": "Polling frequency from the Rika Firenet cloud (default: 15 seconds).",
+          "pendingTimeout": "Maximum timeout before alert and abort if stove does not confirm commands (default: 300 s / 5 min).",
+          "climate": "Exposes the main climate entity to control mode, target temperature, and state.",
+          "sensor": "Exposes sensors: room temperature, pellet consumption, power, fan velocity, etc.",
+          "binary_sensor": "Exposes binary sensors: door open, pellet lid, Wi-Fi signal, grid contact, etc.",
+          "switch": "Exposes on/off controls: stove on/off, heating times, convection fans.",
+          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature."
         }
       }
     }
