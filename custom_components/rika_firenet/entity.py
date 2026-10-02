@@ -46,12 +46,15 @@ class RikaFirenetEntity(CoordinatorEntity[RikaFirenetCoordinator]):
     def device_info(self):
         """Return the device information."""
         stove_id_str = str(self._stove_id)
+        stove_type = self._stove.get_stove_type()
+        model_str = f"{stove_type} ({stove_id_str})" if stove_type else f"Firenet Stove ({stove_id_str})"
         return {
             "identifiers": {(DOMAIN, stove_id_str)},
             "name": self._stove.get_name(),
             "manufacturer": "Rika",
-            "model": f"Firenet Stove ({stove_id_str})",
+            "model": model_str,
             "sw_version": self._stove.get_firmware_version(),
+            "configuration_url": f"https://www.rika-firenet.com/web/stove/{stove_id_str}",
         }
 
     @property

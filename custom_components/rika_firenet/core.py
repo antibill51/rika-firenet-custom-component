@@ -16,12 +16,13 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 class RikaFirenetCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, username, password, default_temperature, default_scan_interval):
+    def __init__(self, hass, username, password, default_temperature, default_scan_interval, pending_timeout=300):
         self.hass = hass
         self._username = username
         self._password = password
         self._default_temperature = int(default_temperature)
         self._default_scan_interval = timedelta(seconds=default_scan_interval)
+        self._pending_timeout = int(pending_timeout)
         self._client = requests.session() # Keep a single session for all requests
         self._stoves: list[RikaFirenetStove] = [] # Type hinting for clarity
         self._number_fail = 0
@@ -206,17 +207,18 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                             stove.clear_pending_changes() # Mark changes as sent
                         else:
                             elapsed = time.time() - (stove.get_controls_changed_time() or time.time())
-                            MAX_PENDING_TIME = 300 # 5 minutes de réessai avant abandon
-                            if elapsed < MAX_PENDING_TIME:
+                            max_pending_time = getattr(self, '_pending_timeout', 300)
+                            if elapsed < max_pending_time:
                                 _LOGGER.warning(
-                                    f"Failed to send controls for stove {stove.get_id()} ({int(elapsed)}s/{MAX_PENDING_TIME}s). "
+                                    f"Failed to send controls for stove {stove.get_id()} ({int(elapsed)}s/{max_pending_time}s). "
                                     "Changes remain pending and will be retried on next update."
                                 )
                             else:
                                 _LOGGER.error(
                                     f"Failed to send controls for stove {stove.get_id()} after {int(elapsed)}s. "
-                                    "Clearing pending changes and resyncing state."
+                                    "Clearing pending changes, firing event, and notifying user."
                                 )
+                                self._notify_command_timeout(stove, elapsed, max_pending_time)
                                 stove.clear_pending_changes()
                                 stove.sync_state()
                     else:
@@ -228,6 +230,38 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                     stove.sync_state() # Retrieves and updates the stove's state
             except Exception as e:
                 _LOGGER.error(f"Error processing stove {stove.get_id()} in coordinator update: {e}", exc_info=True)
+
+    def _notify_command_timeout(self, stove, elapsed: float, timeout: int):
+        """Notify the user and fire an event when stove commands exceed the timeout."""
+        try:
+            # 1. Fire Home Assistant event on bus
+            self.hass.bus.fire(
+                "rika_firenet_command_timeout",
+                {
+                    "stove_id": stove.get_id(),
+                    "stove_name": stove.get_name(),
+                    "elapsed_seconds": int(elapsed),
+                    "timeout_seconds": int(timeout),
+                },
+            )
+            # 2. Create persistent notification in HA UI
+            self.hass.services.call(
+                "persistent_notification",
+                "create",
+                {
+                    "title": f"Rika Firenet - Commande non confirmée ({stove.get_name()})",
+                    "message": (
+                        f"Les réglages envoyés au poêle **{stove.get_name()}** (ID: {stove.get_id()}) "
+                        f"n'ont pas pu être confirmés par le cloud après {int(elapsed)} secondes "
+                        f"(délai configuré : {int(timeout)} s).\n\n"
+                        "L'état précédent a été restauré pour garantir la cohérence."
+                    ),
+                    "notification_id": f"rika_firenet_timeout_{stove.get_id()}",
+                },
+            )
+            _LOGGER.info(f"Dispatched command timeout notification and event for stove {stove.get_id()}")
+        except Exception as ex:
+            _LOGGER.error(f"Error dispatching timeout notification for stove {stove.get_id()}: {ex}")
 
     def set_stove_controls(self, stove_id, controls):
         _LOGGER.debug(f"set_stove_controls for {stove_id}, data: {str(controls)}")
@@ -844,6 +878,10 @@ class RikaFirenetStove:
             except (ValueError, TypeError):
                 _LOGGER.warning(f"Invalid frostProtectionTemperature value for {self._id}: {value}")
                 return None
+    def get_stove_type(self):
+        """Return the stove model type (e.g. 'DOMO MultiAir')."""
+        if self._state:
+            return self._state.get('stoveType') or self._state.get('sensors', {}).get('stoveType')
         return None
 
     def get_firmware_version(self):

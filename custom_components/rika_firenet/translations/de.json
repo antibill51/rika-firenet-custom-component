@@ -23,8 +23,10 @@
         "data": {
           "defaultTemperature": "Standard-Temperatur (21°C)",
           "defaultScanInterval": "Standard-Prüfintervall (15s)",
+          "pendingTimeout": "Befehls-Timeout (Sekunden, Standard 300)",
           "climate": "Climate aktiv",
           "sensor": "Sensor aktiv",
+          "binary_sensor": "Binäre Sensoren aktiv",
           "switch": "Switch aktiv",
           "number": "Number aktiv"
         }

@@ -13,6 +13,8 @@ CONF_ENABLED = "enabled"
 # CONF_USERNAME et CONF_PASSWORD sont importés depuis homeassistant.const
 CONF_DEFAULT_TEMPERATURE = "defaultTemperature"
 CONF_DEFAULT_SCAN_INTERVAL  = "defaultScanInterval"
+CONF_PENDING_TIMEOUT = "pendingTimeout"
+DEFAULT_PENDING_TIMEOUT = 300
 DATA = "data"
 UPDATE_TRACK = "update_track"
 

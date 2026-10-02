@@ -9,6 +9,8 @@ from homeassistant.helpers import config_validation as cv
 from .const import (
     CONF_DEFAULT_TEMPERATURE,
     CONF_DEFAULT_SCAN_INTERVAL,
+    CONF_PENDING_TIMEOUT,
+    DEFAULT_PENDING_TIMEOUT,
     CONF_PASSWORD,
     CONF_USERNAME,
     DOMAIN,
@@ -39,9 +41,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     password = entry.data.get(CONF_PASSWORD)
     default_temperature = int(entry.options.get(CONF_DEFAULT_TEMPERATURE, 21))
     default_scan_interval = int(entry.options.get(CONF_DEFAULT_SCAN_INTERVAL, 15))
+    pending_timeout = int(entry.options.get(CONF_PENDING_TIMEOUT, DEFAULT_PENDING_TIMEOUT))
 
     coordinator = RikaFirenetCoordinator(
-        hass, username, password, default_temperature, default_scan_interval
+        hass, username, password, default_temperature, default_scan_interval, pending_timeout
     )
 
     try:

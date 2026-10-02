@@ -6,6 +6,8 @@ from homeassistant.core import callback
 from .const import (
     CONF_DEFAULT_TEMPERATURE,
     CONF_DEFAULT_SCAN_INTERVAL,
+    CONF_PENDING_TIMEOUT,
+    DEFAULT_PENDING_TIMEOUT,
     CONF_PASSWORD,
     CONF_USERNAME,
     DOMAIN,
@@ -42,9 +44,9 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
         """Get the options flow for this handler."""
-        return RikaFirenetOptionsFlowHandler(config_entry)
+        return RikaFirenetOptionsFlowHandler()
 
     async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
         """Show the configuration form to edit data."""
@@ -81,11 +83,6 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for RikaFirenet."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry | None = None) -> None:
-        """Initialize options flow."""
-        if config_entry is not None:
-            self.config_entry = config_entry
-    
     async def async_step_init(self, user_input=None):
         """Manage the options."""
         if user_input is not None:
@@ -101,6 +98,9 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
         current_scan = options.get(CONF_DEFAULT_SCAN_INTERVAL, 15)
         if not isinstance(current_scan, int): current_scan = 15
 
+        current_timeout = options.get(CONF_PENDING_TIMEOUT, DEFAULT_PENDING_TIMEOUT)
+        if not isinstance(current_timeout, int): current_timeout = DEFAULT_PENDING_TIMEOUT
+
         schema_properties = {
             vol.Required(
                 CONF_DEFAULT_TEMPERATURE,
@@ -109,6 +109,10 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
             vol.Required(
                 CONF_DEFAULT_SCAN_INTERVAL,
                 default=current_scan,
+            ): int,
+            vol.Required(
+                CONF_PENDING_TIMEOUT,
+                default=current_timeout,
             ): int,
         }
         

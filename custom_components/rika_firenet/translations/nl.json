@@ -23,8 +23,10 @@
         "data": {
           "defaultTemperature": "Standaard temperatuur",
           "defaultScanInterval": "Standaard scaninterval (15 seconden)",
+          "pendingTimeout": "Time-out voor opdrachten (seconden, standaard 300)",
           "climate": "Klimaat ingeschakeld",
           "sensor": "Sensor ingeschakeld",
+          "binary_sensor": "Binaire sensoren ingeschakeld",
           "switch": "Schakelaar ingeschakeld",
           "number": "Nummer ingeschakeld"
         }

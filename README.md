@@ -27,6 +27,48 @@ or:
 
 ## Configuration is done in the UI
 
+You can customize the following options via the **Configure** button on the integration:
+- **Default temperature**: Default target temperature.
+- **Scan interval**: Polling interval for updates (default: 15 seconds).
+- **Command confirmation timeout**: Maximum wait time before abandoning unconfirmed commands sent to the stove (default: 300 seconds / 5 minutes).
+- **Platform toggles**: Enable or disable climate, sensors, binary sensors, switches, or numbers.
+
+### Événements et Notifications / Events & Notifications
+
+When controls sent to the stove cannot be confirmed by the cloud within the configured timeout (default 5 minutes), the integration:
+1. Creates a persistent notification in the Home Assistant UI (`persistent_notification`).
+2. Fires an event `rika_firenet_command_timeout` on the event bus with payload (`stove_id`, `stove_name`, `elapsed_seconds`, `timeout_seconds`).
+
+#### Exemple d'automatisation : Notification Mobile (HA Companion)
+```yaml
+alias: "Rika Firenet - Alerte échec de commande (Mobile)"
+trigger:
+  - trigger: event
+    event_type: rika_firenet_command_timeout
+action:
+  - action: notify.notify
+    data:
+      title: "Rika Firenet - Commande non confirmée"
+      message: >-
+        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
+        n'ont pas pu être confirmés après {{ trigger.event.data.elapsed_seconds }} secondes.
+```
+
+#### Exemple d'automatisation : Notification Telegram
+```yaml
+alias: "Rika Firenet - Alerte échec de commande (Telegram)"
+trigger:
+  - trigger: event
+    event_type: rika_firenet_command_timeout
+action:
+  - action: notify.telegram
+    data:
+      title: "⚠️ Rika Firenet - Commande non confirmée"
+      message: >-
+        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
+        n'ont pas pu être confirmés par le poêle après {{ trigger.event.data.elapsed_seconds }} secondes.
+```
+
 ## Lovelace: 
 
 ![alt text](https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/Screenshot/capture.png)

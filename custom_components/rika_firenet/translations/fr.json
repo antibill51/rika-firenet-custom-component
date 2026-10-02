@@ -23,9 +23,10 @@
         "data": {
           "defaultTemperature": "Température par défaut",
           "defaultScanInterval": "Intervalle par défaut (15 secondes)",
+          "pendingTimeout": "Délai d'attente des commandes (secondes, défaut 300)",
           "climate": "Climate activé",
           "sensor": "Sensor activé",
-          "binary_sensor": "Binary sensor activé",
+          "binary_sensor": "Capteurs binaires activés",
           "switch": "Switch activé",
           "number": "Number activé"
         }
@@ -33,24 +34,7 @@
     }
   },
   "entity": {
-    "binary_sensor": {
-      "door": {
-        "name": "Porte"
-      },
-      "pellet lid": {
-        "name": "Couvercle du réservoir"
-      },
-      "grid contact": {
-        "name": "Grille de décendrage"
-      },
-      "external request": {
-        "name": "Contact externe"
-      }
-    },
     "sensor": {
-      "wifi strength": {
-        "name": "Signal Wi-Fi"
-      },
       "stove status": {
         "state": {
           "frost_protection": "Mode hors gel",
