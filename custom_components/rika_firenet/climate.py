@@ -80,7 +80,14 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
 
     @property
     def target_temperature(self):
-        return self._stove.get_room_thermostat()
+        # In manual mode (operatingMode == 0) or without an active thermostat setpoint,
+        # the stove regulates by power and not by target temperature.
+        if self._stove.get_stove_operation_mode() == 0:
+            return None
+        temp = self._stove.get_room_thermostat()
+        if temp is None or temp <= 0:
+            return None
+        return temp
 
     @property
     def target_temperature_step(self):
@@ -101,7 +108,14 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
 
     @property
     def supported_features(self):
-        return SUPPORT_FLAGS
+        features = (
+            ClimateEntityFeature.PRESET_MODE
+            | ClimateEntityFeature.TURN_OFF
+            | ClimateEntityFeature.TURN_ON
+        )
+        if self._stove.get_stove_operation_mode() != 0:
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        return features
 
     @property
     def temperature_unit(self):
