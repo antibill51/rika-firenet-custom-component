@@ -342,6 +342,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         of_sensors = raw_data.get("sensors", {})
         of_stove = raw_data.get("stove", {})
         raw_s = raw_data.get("raw_sensors", {})
+        ctrl_pos = raw_data.get("controls_pos", [])
 
         # Températures
         room_temp = of_sensors.get("room_temperature")
@@ -352,9 +353,15 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
         flame_temp = of_sensors.get("combustion_temperature")
         if flame_temp is not None:
-            sensors_dict["inputFlameTemperature"] = int(flame_temp)
+            sensors_dict["inputFlameTemperature"] = int(float(flame_temp))
         elif "flame" in raw_s:
             sensors_dict["inputFlameTemperature"] = int(raw_s["flame"])
+
+        board_temp = of_sensors.get("board_temperature")
+        if board_temp is not None:
+            sensors_dict["inputBoardTemperature"] = str(board_temp)
+        elif "boardSensor" in raw_s:
+            sensors_dict["inputBoardTemperature"] = str(raw_s["boardSensor"])
 
         # Consommation & heures
         if of_sensors.get("pellets_total_kg") is not None:
@@ -367,7 +374,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         elif "pelletHours" in raw_s:
             sensors_dict["parameterRuntimePellets"] = int(raw_s["pelletHours"])
 
-        if "logRuntime" in raw_s and raw_s["logRuntime"] is not None:
+        if "logRuntime" in raw_s and raw_s["logRuntime"] is not None and int(raw_s["logRuntime"]) >= 0:
             sensors_dict["parameterRuntimeLogs"] = int(raw_s["logRuntime"])
         elif of_sensors.get("log_runtime_hours") is not None:
             sensors_dict["parameterRuntimeLogs"] = int(of_sensors["log_runtime_hours"]) * 60
@@ -392,6 +399,11 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             sensors_dict["outputAirFlaps"] = float(of_sensors["air_flaps_percent"]) * 10.0
         elif "airFlaps" in raw_s and raw_s["airFlaps"] is not None:
             sensors_dict["outputAirFlaps"] = float(raw_s["airFlaps"])
+
+        if of_sensors.get("air_flaps_target_percent") is not None:
+            sensors_dict["outputAirFlapsTargetPosition"] = float(of_sensors["air_flaps_target_percent"]) * 10.0
+        elif "airFlapsTarget" in raw_s and raw_s["airFlapsTarget"] is not None:
+            sensors_dict["outputAirFlapsTargetPosition"] = float(raw_s["airFlapsTarget"])
 
         # États et sous-états
         if of_stove.get("state_code") is not None:
@@ -509,6 +521,8 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             controls_dict["frostProtectionActive"] = bool(of_controls["frost_protection_active"])
         if of_controls.get("frost_protection_temperature") is not None:
             controls_dict["frostProtectionTemperature"] = int(round(float(of_controls["frost_protection_temperature"])))
+        if of_controls.get("bake_target_temperature") is not None:
+            controls_dict["bakeTemperature"] = int(round(float(of_controls["bake_target_temperature"])))
         if of_controls.get("room_temperature_offset") is not None:
             controls_dict["temperatureOffset"] = float(of_controls["room_temperature_offset"])
         if "eco_mode" in of_controls and of_controls["eco_mode"] is not None:
@@ -516,14 +530,28 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
         controls_dict["revision"] = int(raw_data.get("revision", 0))
 
-        # 3. Stove features
-        if of_sensors.get("air_flaps_percent") is not None or ("airFlaps" in raw_s and raw_s["airFlaps"] is not None):
+        # 3. Stove features (aligné avec open-firenet.ino::mqttDiscoveryStep)
+        version_frame = str(raw_data.get("version_frame", "")).upper()
+        if (
+            of_sensors.get("air_flaps_percent") is not None
+            or of_sensors.get("air_flaps_target_percent") is not None
+            or (raw_s.get("airFlaps") or 0) > 0
+            or (raw_s.get("airFlapsTarget") or 0) > 0
+        ):
             stove_features["airFlaps"] = True
-        if of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1:
+        if (of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1) and version_frame != "V28":
             stove_features["ecoModePossible"] = True
-        if "convection_fan1_active" in of_controls or "convection_fan1_level" in of_controls:
+        if (
+            "convection_fan1_active" in of_controls
+            or "convection_fan1_level" in of_controls
+            or (isinstance(ctrl_pos, list) and len(ctrl_pos) > 23)
+        ):
             stove_features["multiAir1"] = True
-        if "convection_fan2_active" in of_controls or "convection_fan2_level" in of_controls:
+        if (
+            "convection_fan2_active" in of_controls
+            or "convection_fan2_level" in of_controls
+            or (isinstance(ctrl_pos, list) and len(ctrl_pos) > 26)
+        ):
             stove_features["multiAir2"] = True
         if (raw_s.get("logRuntime") or 0) > 0 or (of_sensors.get("log_runtime_hours") or 0) > 0:
             stove_features["logRuntime"] = True
@@ -613,10 +641,20 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                 payload["frost_protection_active"] = bool(controls["frostProtectionActive"])
             if "frostProtectionTemperature" in controls and controls["frostProtectionTemperature"] is not None:
                 payload["frost_protection_temperature"] = int(controls["frostProtectionTemperature"])
+            if "bakeTemperature" in controls and controls["bakeTemperature"] is not None:
+                payload["bake_target_temperature"] = int(controls["bakeTemperature"])
             if "temperatureOffset" in controls and controls["temperatureOffset"] is not None:
                 payload["room_temperature_offset"] = float(controls["temperatureOffset"])
             if "ecoMode" in controls:
                 payload["eco_mode"] = bool(controls["ecoMode"])
+            for slot_key in (
+                "heatTimeMon1", "heatTimeMon2", "heatTimeTue1", "heatTimeTue2",
+                "heatTimeWed1", "heatTimeWed2", "heatTimeThu1", "heatTimeThu2",
+                "heatTimeFri1", "heatTimeFri2", "heatTimeSat1", "heatTimeSat2",
+                "heatTimeSun1", "heatTimeSun2",
+            ):
+                if slot_key in controls and controls[slot_key] is not None:
+                    payload[slot_key] = int(controls[slot_key])
 
             for attempt in range(3):
                 _LOGGER.info(f'Attempting to update local Open Firenet controls ({attempt + 1}/3)')
@@ -627,6 +665,11 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                         _LOGGER.info('Open Firenet controls updated successfully via local HTTP API.')
                         self._number_fail = 0
                         return self.get_stove_state(stove_id)
+                    elif response.status_code == 503:
+                        _LOGGER.warning(
+                            "Local Open Firenet stove is not ready yet (503 stove_not_ready): %s",
+                            response.text,
+                        )
                     else:
                         _LOGGER.warning(f"Local Open Firenet returned error: {response.status_code} - {response.text}")
                 except requests.exceptions.RequestException as e:

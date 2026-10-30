@@ -27,6 +27,10 @@ or:
 
 ## Configuration is done in the UI
 
+During initial setup in **Settings → Devices & Services → Add Integration → Rika Firenet**, you can choose between two connection modes (`connection_type`):
+1. **Rika Firenet Cloud (`cloud`)**: Connects to the official Rika cloud portal (`https://www.rika-firenet.com`) using your email and password.
+2. **Open Firenet Local HTTP (`local`)**: Connects 100% locally (without cloud dependency) to an [Open-Firenet](https://github.com/antibill51/open-firenet) ESP32-S3 USB CDC bridge via its local HTTP REST API (`GET /api/state`, `POST /api/controls`). Simply provide the bridge hostname or IP (default: `open-firenet.local`).
+
 You can customize the following options via the **Configure** button on the integration:
 - **Default temperature**: Default target temperature.
 - **Scan interval**: Polling interval for updates (default: 15 seconds).

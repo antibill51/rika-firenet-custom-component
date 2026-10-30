@@ -51,8 +51,77 @@ ha_const_mock.UnitOfTime = MagicMock()
 
 ha_climate_const_mock.PRESET_COMFORT = "comfort"
 ha_climate_const_mock.PRESET_NONE = "none"
-ha_climate_const_mock.HVACMode = MagicMock()
-ha_climate_const_mock.HVACAction = MagicMock()
+class HVACMode:
+    OFF = "off"
+    HEAT = "heat"
+    AUTO = "auto"
+class HVACAction:
+    OFF = "off"
+    HEATING = "heating"
+    IDLE = "idle"
+class ClimateEntityFeature:
+    TARGET_TEMPERATURE = 1
+    PRESET_MODE = 16
+    TURN_OFF = 128
+    TURN_ON = 256
+class ClimateEntity:
+    pass
+ha_climate_const_mock.HVACMode = HVACMode
+ha_climate_const_mock.HVACAction = HVACAction
+ha_climate_mock.ClimateEntity = ClimateEntity
+ha_climate_mock.HVACMode = HVACMode
+ha_climate_mock.ClimateEntityFeature = ClimateEntityFeature
+ha_climate_mock.PRESET_COMFORT = "comfort"
+ha_climate_mock.PRESET_NONE = "none"
+ha_climate_mock.HVACAction = HVACAction
+ha_const_mock.ATTR_TEMPERATURE = "temperature"
+
+ha_sensor_mock = ModuleType("homeassistant.components.sensor")
+class SensorDeviceClass:
+    WEIGHT = "weight"
+    DURATION = "duration"
+    TEMPERATURE = "temperature"
+    SIGNAL_STRENGTH = "signal_strength"
+class SensorStateClass:
+    TOTAL_INCREASING = "total_increasing"
+    MEASUREMENT = "measurement"
+    TOTAL = "total"
+class SensorEntity:
+    pass
+ha_sensor_mock.SensorDeviceClass = SensorDeviceClass
+ha_sensor_mock.SensorStateClass = SensorStateClass
+ha_sensor_mock.SensorEntity = SensorEntity
+
+ha_binary_sensor_mock = ModuleType("homeassistant.components.binary_sensor")
+class BinarySensorDeviceClass:
+    DOOR = "door"
+    OPENING = "opening"
+    PROBLEM = "problem"
+    RUNNING = "running"
+class BinarySensorEntity:
+    pass
+ha_binary_sensor_mock.BinarySensorDeviceClass = BinarySensorDeviceClass
+ha_binary_sensor_mock.BinarySensorEntity = BinarySensorEntity
+
+ha_switch_mock = ModuleType("homeassistant.components.switch")
+class SwitchEntity:
+    pass
+ha_switch_mock.SwitchEntity = SwitchEntity
+
+ha_number_mock = ModuleType("homeassistant.components.number")
+class NumberEntity:
+    pass
+ha_number_mock.NumberEntity = NumberEntity
+
+class CoordinatorEntity:
+    def __class_getitem__(cls, item):
+        return cls
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+        self.hass = getattr(coordinator, "hass", None)
+    @property
+    def available(self):
+        return getattr(self.coordinator, "last_update_success", True)
 
 class DataUpdateCoordinator:
     def __init__(self, hass, logger, name, update_method, update_interval):
@@ -61,12 +130,46 @@ class DataUpdateCoordinator:
         self.name = name
         self.update_method = update_method
         self.update_interval = update_interval
+        self.last_update_success = True
+        self.data = {}
+    async def async_refresh(self):
+        try:
+            self.data = await self.update_method()
+            self.last_update_success = True
+        except Exception:
+            self.last_update_success = False
+    async def async_request_refresh(self):
+        await self.async_refresh()
 
 class UpdateFailed(Exception):
     pass
 
 ha_coord_mock.DataUpdateCoordinator = DataUpdateCoordinator
+ha_coord_mock.CoordinatorEntity = CoordinatorEntity
 ha_coord_mock.UpdateFailed = UpdateFailed
+ha_mock.core.callback = lambda f: f
+
+class ConfigFlow:
+    def __init_subclass__(cls, **kwargs):
+        pass
+    def async_create_entry(self, title, data):
+        return {"type": "create_entry", "title": title, "data": data}
+    def async_show_form(self, step_id, data_schema, errors=None):
+        return {"type": "form", "step_id": step_id, "data_schema": data_schema, "errors": errors or {}}
+
+class OptionsFlow:
+    pass
+
+ha_config_entries.ConfigFlow = ConfigFlow
+ha_config_entries.OptionsFlow = OptionsFlow
+ha_config_entries.CONN_CLASS_CLOUD_POLL = "cloud_poll"
+
+vol_mock = ModuleType("voluptuous")
+vol_mock.Required = lambda k, default=None: k
+vol_mock.Optional = lambda k, default=None: k
+vol_mock.In = lambda x: x
+vol_mock.Schema = lambda x: x
+sys.modules["voluptuous"] = vol_mock
 
 bs4_mock = ModuleType("bs4")
 bs4_mock.BeautifulSoup = MagicMock()
@@ -76,6 +179,10 @@ sys.modules["homeassistant.helpers"] = ha_helpers_mock
 sys.modules["homeassistant.const"] = ha_const_mock
 sys.modules["homeassistant.components.climate"] = ha_climate_mock
 sys.modules["homeassistant.components.climate.const"] = ha_climate_const_mock
+sys.modules["homeassistant.components.sensor"] = ha_sensor_mock
+sys.modules["homeassistant.components.binary_sensor"] = ha_binary_sensor_mock
+sys.modules["homeassistant.components.switch"] = ha_switch_mock
+sys.modules["homeassistant.components.number"] = ha_number_mock
 sys.modules["homeassistant.helpers.update_coordinator"] = ha_coord_mock
 sys.modules["homeassistant.helpers.entity"] = ha_entity_mock
 sys.modules["homeassistant.config_entries"] = ha_config_entries
@@ -255,7 +362,9 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
             "onOff": True,
             "operatingMode": 2,
             "targetTemperature": 21.5,
-            "heatingPower": 80
+            "heatingPower": 80,
+            "bakeTemperature": 200,
+            "heatTimeMon1": 6000800,
         })
 
         self.assertIsNotNone(res)
@@ -266,8 +375,155 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
             "on": True,
             "mode": "comfort",
             "target_temperature": 21.5,
-            "power_percent": 80
+            "power_percent": 80,
+            "bake_target_temperature": 200,
+            "heatTimeMon1": 6000800,
         })
+
+    def test_v28_eco_mode_exclusion_and_entities(self):
+        """Vérifie l'exclusion de ecoModePossible sur profil V28 et l'instanciation de toutes les plateformes HA."""
+        from custom_components.rika_firenet.climate import RikaFirenetStoveClimate
+        from custom_components.rika_firenet.sensor import RikaFirenetStoveSensor, get_sensor_device_list
+        from custom_components.rika_firenet.binary_sensor import RikaFirenetStoveBinarySensor, BINARY_SENSOR_ATTRIBUTES
+        from custom_components.rika_firenet.switch import RikaFirenetStoveSwitch, get_switch_device_list
+        from custom_components.rika_firenet.number import RikaFirenetStoveNumber, get_number_device_list
+
+        coord = RikaFirenetCoordinator(
+            self.hass,
+            username=None,
+            password=None,
+            default_temperature=21,
+            default_scan_interval=15,
+            connection_type=CONNECTION_TYPE_LOCAL,
+            host="192.168.1.50"
+        )
+        # 1. Test profil V28 : ecoModePossible doit être désactivé même si eco_mode_possible=True
+        v28_state = dict(self.fixture_state)
+        v28_state["version_frame"] = "V28"
+        v28_state["controls"] = dict(self.fixture_state["controls"], eco_mode_possible=True)
+        norm_v28 = coord._normalize_openfirenet_state(v28_state, "stove_v28")
+        self.assertFalse(norm_v28["stoveFeatures"].get("ecoModePossible", False))
+
+        # 2. Test toutes les entités sur l'état normalisé DOMO
+        norm = coord._normalize_openfirenet_state(self.fixture_state, "stove_domo")
+        stove = RikaFirenetStove(coord, "stove_domo", "Rika DOMO")
+        stove.update_internal_state(norm)
+        entry = MagicMock()
+
+        # Climate
+        clim = RikaFirenetStoveClimate(entry, stove, coord)
+        self.assertEqual(clim.current_temperature, 22.5)
+        self.assertEqual(clim.target_temperature, 18.0)
+        self.assertEqual(clim.preset_mode, "comfort")
+        self.assertEqual(clim.hvac_mode, "off")
+        self.assertIn("http://192.168.1.50", clim.device_info["configuration_url"])
+
+        # Sensors
+        sensor_names = get_sensor_device_list(stove)
+        self.assertIn("stove consumption", sensor_names)
+        for s_name in sensor_names:
+            s_ent = RikaFirenetStoveSensor(entry, stove, coord, s_name)
+            _ = s_ent.native_value
+
+        # Binary Sensors
+        for bs_name in BINARY_SENSOR_ATTRIBUTES:
+            bs_ent = RikaFirenetStoveBinarySensor(entry, stove, coord, bs_name)
+            self.assertIsInstance(bs_ent.is_on, bool)
+
+        # Switches
+        switch_names = get_switch_device_list(stove)
+        self.assertIn("on off", switch_names)
+        self.assertIn("convection fan1", switch_names)
+        for sw_name in switch_names:
+            sw_ent = RikaFirenetStoveSwitch(entry, stove, coord, sw_name)
+            self.assertIsInstance(sw_ent.is_on, bool)
+
+        # Numbers
+        num_names = get_number_device_list(stove)
+        self.assertIn("heating power", num_names)
+        self.assertIn("set back temperature", num_names)
+        for n_name in num_names:
+            n_ent = RikaFirenetStoveNumber(entry, stove, coord, n_name)
+            self.assertIsNotNone(n_ent.native_value)
+
+    def test_config_flow_and_hacs_manifest(self):
+        """Vérifie le ConfigFlow (Local & Cloud), le déchargement async_unload_entry et la conformité HACS/Translations."""
+        import asyncio
+        import os
+        from custom_components.rika_firenet.config_flow import RikaFirenetFlowHandler
+        from custom_components.rika_firenet import async_setup_entry, async_unload_entry
+
+        flow = RikaFirenetFlowHandler()
+        flow.hass = MagicMock()
+
+        async def run_flow():
+            # Test connexion locale réussie
+            with patch.object(RikaFirenetFlowHandler, "_test_local_connection", return_value=True):
+                res = await flow.async_step_user({
+                    "connection_type": CONNECTION_TYPE_LOCAL,
+                    "host": "192.168.1.50",
+                })
+                self.assertEqual(res["type"], "create_entry")
+                self.assertEqual(res["title"], "Open Firenet (192.168.1.50)")
+
+            # Test connexion locale échouée
+            with patch.object(RikaFirenetFlowHandler, "_test_local_connection", return_value=False):
+                res_err = await flow.async_step_user({
+                    "connection_type": CONNECTION_TYPE_LOCAL,
+                    "host": "192.168.1.99",
+                })
+                self.assertEqual(res_err["type"], "form")
+                self.assertEqual(res_err["errors"]["base"], "cannot_connect")
+
+            # Test setup & unload entry
+            hass = MagicMock()
+            hass.data = {}
+            async def async_exec(func, *args):
+                return func(*args)
+            hass.async_add_executor_job = async_exec
+            async def async_fwd(e, p):
+                return True
+            async def async_unl(e, p):
+                return True
+            hass.config_entries.async_forward_entry_setups = async_fwd
+            hass.config_entries.async_unload_platforms = async_unl
+
+            entry = MagicMock()
+            entry.entry_id = "entry_local_1"
+            entry.data = {"connection_type": CONNECTION_TYPE_LOCAL, "host": "192.168.1.50"}
+            entry.options = {}
+
+            with patch.object(RikaFirenetCoordinator, "setup", return_value=None), \
+                 patch.object(RikaFirenetCoordinator, "update", return_value=None):
+                ok = await async_setup_entry(hass, entry)
+                self.assertTrue(ok)
+                self.assertIn("entry_local_1", hass.data["rika_firenet"])
+                unloaded = await async_unload_entry(hass, entry)
+                self.assertTrue(unloaded)
+                self.assertNotIn("entry_local_1", hass.data["rika_firenet"])
+
+        asyncio.run(run_flow())
+
+        # Conformité HACS & manifest.json & traductions JSON
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(base_dir, "hacs.json"), "r") as f:
+            hacs_data = json.load(f)
+        self.assertIn("name", hacs_data)
+
+        manifest_path = os.path.join(base_dir, "custom_components", "rika_firenet", "manifest.json")
+        with open(manifest_path, "r") as f:
+            manifest = json.load(f)
+        for req_key in ("domain", "name", "codeowners", "config_flow", "documentation", "iot_class", "issue_tracker", "requirements", "version"):
+            self.assertIn(req_key, manifest)
+        self.assertEqual(manifest["domain"], "rika_firenet")
+
+        trans_dir = os.path.join(base_dir, "custom_components", "rika_firenet", "translations")
+        for lang in ("fr.json", "en.json", "de.json", "nl.json"):
+            with open(os.path.join(trans_dir, lang), "r") as f:
+                tr = json.load(f)
+            self.assertIn("connection_type", tr["config"]["step"]["user"]["data"])
+            self.assertIn("host", tr["config"]["step"]["user"]["data"])
+            self.assertIn("cannot_connect", tr["config"]["error"])
 
 
 if __name__ == "__main__":

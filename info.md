@@ -20,6 +20,8 @@ Platform | Description
 
 ## Configuration is done in the UI
 
+Supports both **Rika Firenet Cloud** (`rika-firenet.com`) and **Open Firenet Local HTTP** (`http://open-firenet.local`) connection modes via the Home Assistant Config Flow.
+
 ## Data list : 
 ```
 {
