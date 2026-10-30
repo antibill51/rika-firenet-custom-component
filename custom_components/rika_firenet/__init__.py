@@ -39,12 +39,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
+    connection_type = entry.data.get("connection_type", "cloud")
+    host = entry.data.get("host")
     default_temperature = int(entry.options.get(CONF_DEFAULT_TEMPERATURE, 21))
     default_scan_interval = int(entry.options.get(CONF_DEFAULT_SCAN_INTERVAL, 15))
     pending_timeout = int(entry.options.get(CONF_PENDING_TIMEOUT, DEFAULT_PENDING_TIMEOUT))
 
     coordinator = RikaFirenetCoordinator(
-        hass, username, password, default_temperature, default_scan_interval, pending_timeout
+        hass,
+        username,
+        password,
+        default_temperature,
+        default_scan_interval,
+        pending_timeout,
+        connection_type=connection_type,
+        host=host,
     )
 
     try:

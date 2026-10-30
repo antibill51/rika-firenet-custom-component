@@ -5,17 +5,22 @@
         "title": "Rika Firenet Verbindung",
         "description": "Richten Sie die Verbindung zu Ihrem Rika Firenet-Konto ein, um Ihren Ofen zu steuern.",
         "data": {
+          "connection_type": "Verbindungstyp",
+          "host": "Open Firenet Host / IP",
           "username": "Benutzername (E-Mail)",
           "password": "Passwort"
         },
         "data_description": {
-          "username": "Die für die Anmeldung auf www.rika-firenet.com verwendete E-Mail-Adresse",
-          "password": "Das Passwort für Ihr Rika Firenet-Konto"
+          "connection_type": "Wählen Sie zwischen Rika Firenet Cloud oder lokaler HTTP-Verbindung mit Open Firenet.",
+          "host": "Bridge-Hostname oder lokale IP-Adresse (z. B. open-firenet.local oder 192.168.1.50).",
+          "username": "Die für die Anmeldung auf www.rika-firenet.com verwendete E-Mail-Adresse (nur Cloud)",
+          "password": "Das Passwort für Ihr Rika Firenet-Konto (nur Cloud)"
         }
       }
     },
     "error": {
-      "auth": "Benutzername oder Passwort ist falsch."
+      "auth": "Benutzername oder Passwort ist falsch.",
+      "cannot_connect": "Verbindung zur Open Firenet Bridge fehlgeschlagen."
     },
     "abort": {
       "single_instance_allowed": "Es ist nur eine einzelne Instanz der Integration erlaubt."

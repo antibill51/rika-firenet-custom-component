@@ -1,6 +1,7 @@
 from homeassistant.const import (
     CONF_USERNAME,
     CONF_PASSWORD,
+    CONF_HOST,
     Platform,
 )
 from homeassistant.components.climate.const import (
@@ -10,6 +11,11 @@ from homeassistant.components.climate.const import (
 
 # Configuration
 CONF_ENABLED = "enabled"
+CONF_CONNECTION_TYPE = "connection_type"
+CONNECTION_TYPE_CLOUD = "cloud"
+CONNECTION_TYPE_LOCAL = "local"
+CONF_HOST_DEFAULT = "open-firenet.local"
+
 # CONF_USERNAME et CONF_PASSWORD sont importés depuis homeassistant.const
 CONF_DEFAULT_TEMPERATURE = "defaultTemperature"
 CONF_DEFAULT_SCAN_INTERVAL  = "defaultScanInterval"

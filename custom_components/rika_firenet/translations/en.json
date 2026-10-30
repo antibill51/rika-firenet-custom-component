@@ -5,17 +5,22 @@
         "title": "Rika Firenet Connection",
         "description": "Configure the connection with your Rika Firenet account to control your stove.",
         "data": {
+          "connection_type": "Connection type",
+          "host": "Open Firenet Host / IP",
           "username": "Username (Email)",
           "password": "Password"
         },
         "data_description": {
-          "username": "The email address used to log in at www.rika-firenet.com",
-          "password": "The password for your Rika Firenet account"
+          "connection_type": "Choose between Rika Firenet Cloud (rika-firenet.com) or local direct HTTP with Open Firenet.",
+          "host": "Bridge hostname or local IP address for Open Firenet (e.g., open-firenet.local or 192.168.1.50).",
+          "username": "The email address used to log in at www.rika-firenet.com (Cloud only)",
+          "password": "The password for your Rika Firenet account (Cloud only)"
         }
       }
     },
     "error": {
-      "auth": "Incorrect username or password."
+      "auth": "Incorrect username or password.",
+      "cannot_connect": "Unable to connect to Open Firenet bridge."
     },
     "abort": {
       "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed."

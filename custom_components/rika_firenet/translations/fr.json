@@ -5,17 +5,22 @@
         "title": "Connexion Rika Firenet",
         "description": "Configurez la connexion avec votre compte Rika Firenet pour piloter votre poêle.",
         "data": {
+          "connection_type": "Type de connexion",
+          "host": "Hôte / IP Open Firenet",
           "username": "Identifiant (Email)",
           "password": "Mot de passe"
         },
         "data_description": {
-          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com",
-          "password": "Le mot de passe associé à votre compte Rika Firenet"
+          "connection_type": "Choisissez entre le Cloud Rika Firenet (rika-firenet.com) ou le protocole local HTTP Open Firenet.",
+          "host": "Nom d'hôte ou adresse IP locale du pont Open Firenet (ex: open-firenet.local ou 192.168.1.50).",
+          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com (Cloud uniquement)",
+          "password": "Le mot de passe associé à votre compte Rika Firenet (Cloud uniquement)"
         }
       }
     },
     "error": {
-      "auth": "Identifiant ou mot de passe incorrect."
+      "auth": "Identifiant ou mot de passe incorrect.",
+      "cannot_connect": "Impossible de contacter le pont Open Firenet local."
     },
     "abort": {
       "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée."

@@ -10,6 +10,11 @@ from .const import (
     DEFAULT_PENDING_TIMEOUT,
     CONF_PASSWORD,
     CONF_USERNAME,
+    CONF_HOST,
+    CONF_CONNECTION_TYPE,
+    CONNECTION_TYPE_CLOUD,
+    CONNECTION_TYPE_LOCAL,
+    CONF_HOST_DEFAULT,
     DOMAIN,
     PLATFORMS,
 )
@@ -30,14 +35,25 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is not None:
-            valid = await self._test_credentials(
-                user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
-            )
-            if valid:
-                return self.async_create_entry(
-                    title=user_input[CONF_USERNAME], data=user_input
-                )
+            conn_type = user_input.get(CONF_CONNECTION_TYPE, CONNECTION_TYPE_CLOUD)
+            if conn_type == CONNECTION_TYPE_LOCAL:
+                host = user_input.get(CONF_HOST, CONF_HOST_DEFAULT)
+                valid = await self._test_local_connection(host)
+                if valid:
+                    return self.async_create_entry(
+                        title=f"Open Firenet ({host})",
+                        data=user_input
+                    )
+                self._errors["base"] = "cannot_connect"
             else:
+                username = user_input.get(CONF_USERNAME, "")
+                password = user_input.get(CONF_PASSWORD, "")
+                valid = await self._test_credentials(username, password)
+                if valid:
+                    return self.async_create_entry(
+                        title=username,
+                        data=user_input
+                    )
                 self._errors["base"] = "auth"
             return await self._show_config_form(user_input)
         return await self._show_config_form(user_input)
@@ -52,22 +68,38 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Show the configuration form to edit data."""
         if user_input is None:
             user_input = {}
-            
-        default_username = user_input.get(CONF_USERNAME, "")
-        if default_username is None: default_username = ""
-        
-        default_password = user_input.get(CONF_PASSWORD, "")
-        if default_password is None: default_password = ""
+
+        conn_type = user_input.get(CONF_CONNECTION_TYPE, CONNECTION_TYPE_CLOUD)
+        default_username = user_input.get(CONF_USERNAME, "") or ""
+        default_password = user_input.get(CONF_PASSWORD, "") or ""
+        default_host = user_input.get(CONF_HOST, CONF_HOST_DEFAULT) or CONF_HOST_DEFAULT
 
         schema_properties = {
-            vol.Required(CONF_USERNAME, default=default_username): str,
-            vol.Required(CONF_PASSWORD, default=default_password): str,
+            vol.Required(CONF_CONNECTION_TYPE, default=conn_type): vol.In(
+                {
+                    CONNECTION_TYPE_CLOUD: "Rika Firenet Cloud (rika-firenet.com)",
+                    CONNECTION_TYPE_LOCAL: "Open Firenet Local HTTP (open-firenet)",
+                }
+            ),
+            vol.Optional(CONF_HOST, default=default_host): str,
+            vol.Optional(CONF_USERNAME, default=default_username): str,
+            vol.Optional(CONF_PASSWORD, default=default_password): str,
         }
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(schema_properties),
             errors=self._errors,
         )
+
+    async def _test_local_connection(self, host):
+        """Return true if local Open Firenet bridge is reachable."""
+        try:
+            return await self.hass.async_add_executor_job(
+                RikaFirenetCoordinator.test_local_connection, host
+            )
+        except Exception:
+            _LOGGER.exception("test_local_connection_exception")
+            return False
 
     async def _test_credentials(self, username, password):
         """Return true if credentials is valid."""

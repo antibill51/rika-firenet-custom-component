@@ -10,16 +10,32 @@ from .const import (
     LOGIN_URL,
     SUMMARY_URL,
     STATUS_URL,
-    CONTROLS_URL
+    CONTROLS_URL,
+    CONF_CONNECTION_TYPE,
+    CONNECTION_TYPE_CLOUD,
+    CONNECTION_TYPE_LOCAL,
+    CONF_HOST_DEFAULT,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 class RikaFirenetCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, username, password, default_temperature, default_scan_interval, pending_timeout=300):
+    def __init__(
+        self,
+        hass,
+        username,
+        password,
+        default_temperature,
+        default_scan_interval,
+        pending_timeout=300,
+        connection_type=CONNECTION_TYPE_CLOUD,
+        host=None,
+    ):
         self.hass = hass
         self._username = username
         self._password = password
+        self._connection_type = connection_type or CONNECTION_TYPE_CLOUD
+        self._host = (host or CONF_HOST_DEFAULT).strip()
         self._default_temperature = int(default_temperature)
         self._default_scan_interval = timedelta(seconds=default_scan_interval)
         self._pending_timeout = int(pending_timeout)
@@ -35,6 +51,36 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             update_method=self.async_update_data,
             update_interval=self._default_scan_interval
         )
+
+    def is_local_mode(self) -> bool:
+        """Return True if using local HTTP connection to Open Firenet."""
+        return self._connection_type == CONNECTION_TYPE_LOCAL
+
+    def get_host(self) -> str:
+        """Return target host for local connection."""
+        return self._host
+
+    @staticmethod
+    def test_local_connection(host: str) -> bool:
+        """Test HTTP connectivity to Open Firenet /api/state."""
+        clean_host = (host or CONF_HOST_DEFAULT).strip()
+        if not clean_host.startswith("http://") and not clean_host.startswith("https://"):
+            url = f"http://{clean_host}/api/state"
+        else:
+            url = f"{clean_host.rstrip('/')}/api/state"
+        _LOGGER.debug("Testing Open Firenet local connection: %s", url)
+        try:
+            resp = requests.get(url, timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, dict) and ("sensors" in data or "controls" in data or "stove" in data):
+                _LOGGER.debug("Open Firenet local connection test succeeded.")
+                return True
+            _LOGGER.warning("Open Firenet answered but JSON payload did not match expected schema.")
+            return False
+        except Exception as e:
+            _LOGGER.warning("Open Firenet local connection test failed: %s", e)
+            return False
 
     @staticmethod
     def test_authentication(username, password):
@@ -108,7 +154,16 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
     def get_number_fail(self):
         return self._number_fail
 
+    def _get_local_url(self, endpoint: str) -> str:
+        """Construct full URL for local Open Firenet endpoint."""
+        clean_host = self._host
+        if not clean_host.startswith("http://") and not clean_host.startswith("https://"):
+            return f"http://{clean_host}/{endpoint.lstrip('/')}"
+        return f"{clean_host.rstrip('/')}/{endpoint.lstrip('/')}"
+
     def connect(self):
+        if self.is_local_mode():
+            return
         if not self.is_authenticated():
             data = {'email': self._username, 'password': self._password}
             response = self._client.post(LOGIN_URL, data, timeout=10)
@@ -117,6 +172,8 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             _LOGGER.info('Connected to Rika Firenet')
 
     def is_authenticated(self):
+        if self.is_local_mode():
+            return True
         sid_cookie = None
         for cookie in self._client.cookies:
             if cookie.name == 'connect.sid':
@@ -136,6 +193,16 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         MAX_RETRIES = 3
         for attempt in range(MAX_RETRIES):
             try:
+                if self.is_local_mode():
+                    url = self._get_local_url("/api/state")
+                    response = self._client.get(url, timeout=10)
+                    response.raise_for_status()
+                    data = response.json()
+                    # Si la réponse est au format natif Open Firenet, on la normalise
+                    normalized = self._normalize_openfirenet_state(data, stove_id)
+                    _LOGGER.debug(f'get_stove_state local for {stove_id}: {str(normalized)}...')
+                    return normalized
+
                 self.connect() # Ensure connection
                 url = STATUS_URL.format(stove_id=stove_id) + f'?nocache={int(time.time())}'
                 response = self._client.get(url, timeout=10)
@@ -169,6 +236,33 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         return None # Return None après l'échec de toutes les tentatives
 
     def setup_stoves(self):
+        if self.is_local_mode():
+            url = self._get_local_url("/api/state")
+            response = self._client.get(url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            stove_id = "local"
+            stove_name = "Open Firenet"
+            if isinstance(data, dict):
+                stove_meta = data.get("stove", {})
+                device_meta = data.get("device", {})
+                raw_sensors = data.get("raw_sensors", {})
+                model_name = stove_meta.get("model_name")
+                fab_number = raw_sensors.get("fabNumber") or stove_meta.get("fab_number")
+                if fab_number:
+                    stove_id = str(fab_number)
+                elif device_meta.get("mac"):
+                    stove_id = str(device_meta.get("mac")).replace(":", "").lower()
+                
+                if model_name:
+                    stove_name = f"Rika {model_name}"
+                elif device_meta.get("name"):
+                    stove_name = device_meta.get("name")
+
+            stove = RikaFirenetStove(self, stove_id, stove_name)
+            _LOGGER.info(f"Discovered local Open Firenet stove: ID={stove.get_id()}, Name='{stove.get_name()}'")
+            return [stove]
+
         self.connect()
         stoves = []
         response = self._client.get(SUMMARY_URL, timeout=10)
@@ -231,6 +325,193 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             except Exception as e:
                 _LOGGER.error(f"Error processing stove {stove.get_id()} in coordinator update: {e}", exc_info=True)
 
+    def _normalize_openfirenet_state(self, raw_data: dict, stove_id: str) -> dict:
+        """Normalize Open Firenet /api/state response to Rika Firenet cloud schema."""
+        if not isinstance(raw_data, dict):
+            return {}
+
+        # S'il a déjà les blocs sensors et controls conformes cloud
+        if "sensors" in raw_data and "controls" in raw_data and "statusMainState" in raw_data.get("sensors", {}):
+            return raw_data
+
+        sensors_dict = {}
+        controls_dict = {}
+        stove_features = {}
+
+        # 1. Traitement des sensors
+        of_sensors = raw_data.get("sensors", {})
+        of_stove = raw_data.get("stove", {})
+        raw_s = raw_data.get("raw_sensors", {})
+
+        # Températures
+        room_temp = of_sensors.get("room_temperature")
+        if room_temp is not None:
+            sensors_dict["inputRoomTemperature"] = str(room_temp)
+        elif "roomTemp" in raw_s:
+            sensors_dict["inputRoomTemperature"] = str(float(raw_s["roomTemp"]) / 10.0)
+
+        flame_temp = of_sensors.get("combustion_temperature")
+        if flame_temp is not None:
+            sensors_dict["inputFlameTemperature"] = int(flame_temp)
+        elif "flame" in raw_s:
+            sensors_dict["inputFlameTemperature"] = int(raw_s["flame"])
+
+        # Consommation & heures
+        if "pellets_total_kg" in of_sensors:
+            sensors_dict["parameterFeedRateTotal"] = int(of_sensors["pellets_total_kg"])
+        elif "pelletsTotal" in raw_s:
+            sensors_dict["parameterFeedRateTotal"] = int(raw_s["pelletsTotal"])
+
+        if "pellet_hours" in of_sensors:
+            sensors_dict["parameterRuntimePellets"] = int(of_sensors["pellet_hours"])
+        elif "pelletHours" in raw_s:
+            sensors_dict["parameterRuntimePellets"] = int(raw_s["pelletHours"])
+
+        if "logRuntime" in raw_s:
+            sensors_dict["parameterRuntimeLogs"] = int(raw_s["logRuntime"])
+
+        if "service_countdown_kg" in of_sensors:
+            sensors_dict["parameterFeedRateService"] = int(of_sensors["service_countdown_kg"])
+        elif "serviceCountdown" in raw_s:
+            sensors_dict["parameterFeedRateService"] = int(raw_s["serviceCountdown"])
+
+        # Moteurs et ventilateurs
+        if "fan_speed_rpm" in of_sensors:
+            sensors_dict["outputIDFan"] = int(of_sensors["fan_speed_rpm"])
+        elif "idFanMeas" in raw_s:
+            sensors_dict["outputIDFan"] = int(raw_s["idFanMeas"])
+
+        if "auger_speed_rpm" in of_sensors:
+            sensors_dict["outputDischargeMotor"] = int(of_sensors["auger_speed_rpm"])
+        elif "augerSet" in raw_s:
+            sensors_dict["outputDischargeMotor"] = int(raw_s["augerSet"])
+
+        if "air_flaps_percent" in of_sensors:
+            sensors_dict["outputAirFlaps"] = float(of_sensors["air_flaps_percent"]) * 10.0
+        elif "airFlaps" in raw_s:
+            sensors_dict["outputAirFlaps"] = float(raw_s["airFlaps"])
+
+        # États et sous-états
+        if "state_code" in of_stove:
+            sensors_dict["statusMainState"] = int(of_stove["state_code"])
+        elif "mainState" in raw_s:
+            sensors_dict["statusMainState"] = int(raw_s["mainState"])
+
+        if "sub_state" in of_stove:
+            sensors_dict["statusSubState"] = int(of_stove["sub_state"])
+        elif "subState" in raw_s:
+            sensors_dict["statusSubState"] = int(raw_s["subState"])
+
+        if "error_code" in of_stove:
+            sensors_dict["statusError"] = int(of_stove["error_code"])
+        elif "errMask32" in raw_s:
+            sensors_dict["statusError"] = int(raw_s["errMask32"])
+
+        if "error_sub" in of_stove:
+            sensors_dict["statusSubError"] = int(of_stove["error_sub"])
+        elif "errSub" in raw_s:
+            sensors_dict["statusSubError"] = int(raw_s["errSub"])
+
+        if "warning_code" in of_stove:
+            sensors_dict["statusWarning"] = int(of_stove["warning_code"])
+        elif "statusWarning" in raw_s:
+            sensors_dict["statusWarning"] = int(raw_s["statusWarning"])
+
+        # Booléens & capteurs physiques
+        if "door" in raw_s:
+            sensors_dict["inputDoor"] = int(raw_s["door"])
+        if "hopperLidClosed" in raw_s:
+            sensors_dict["inputCover"] = int(raw_s["hopperLidClosed"])
+        if "gridContact" in raw_s:
+            sensors_dict["inputGridContact"] = int(raw_s["gridContact"])
+        if "externalRequest" in raw_s:
+            sensors_dict["inputExternalRequest"] = int(raw_s["externalRequest"])
+        if "frostStarted" in raw_s:
+            sensors_dict["statusFrostStarted"] = bool(raw_s["frostStarted"])
+
+        # Wifi & Firmware
+        device_meta = raw_data.get("device", {})
+        if "wifi_rssi" in device_meta:
+            sensors_dict["statusWifiStrength"] = int(device_meta["wifi_rssi"])
+        elif "rssi" in raw_s:
+            sensors_dict["statusWifiStrength"] = int(raw_s["rssi"])
+
+        if "mainboard_version" in of_stove:
+            mb_ver = str(of_stove["mainboard_version"]).replace(".", "")
+            try:
+                sensors_dict["parameterVersionMainBoard"] = int(mb_ver)
+            except ValueError:
+                sensors_dict["parameterVersionMainBoard"] = of_stove["mainboard_version"]
+        elif "appVerBoard" in raw_s:
+            sensors_dict["parameterVersionMainBoard"] = int(raw_s["appVerBoard"])
+
+        # 2. Traitement des controls
+        of_controls = raw_data.get("controls", {})
+        if "on" in of_controls:
+            controls_dict["onOff"] = bool(of_controls["on"])
+        if "mode_code" in of_controls:
+            controls_dict["operatingMode"] = int(of_controls["mode_code"])
+        elif "mode" in of_controls:
+            mode_map = {"manual": 0, "auto": 1, "comfort": 2}
+            controls_dict["operatingMode"] = mode_map.get(str(of_controls["mode"]).lower(), 0)
+
+        if "target_temperature" in of_controls:
+            controls_dict["targetTemperature"] = float(of_controls["target_temperature"])
+        if "power_percent" in of_controls:
+            controls_dict["heatingPower"] = int(of_controls["power_percent"])
+            controls_dict["RoomPowerRequest"] = int(of_controls["power_percent"])
+        if "heating_times_active" in of_controls:
+            controls_dict["heatingTimesActiveForComfort"] = bool(of_controls["heating_times_active"])
+        if "setback_temperature" in of_controls:
+            controls_dict["setBackTemperature"] = float(of_controls["setback_temperature"])
+
+        if "convection_fan1_active" in of_controls:
+            controls_dict["convectionFan1Active"] = bool(of_controls["convection_fan1_active"])
+        if "convection_fan1_level" in of_controls:
+            controls_dict["convectionFan1Level"] = int(of_controls["convection_fan1_level"])
+        if "convection_fan1_area" in of_controls:
+            controls_dict["convectionFan1Area"] = int(of_controls["convection_fan1_area"])
+
+        if "convection_fan2_active" in of_controls:
+            controls_dict["convectionFan2Active"] = bool(of_controls["convection_fan2_active"])
+        if "convection_fan2_level" in of_controls:
+            controls_dict["convectionFan2Level"] = int(of_controls["convection_fan2_level"])
+        if "convection_fan2_area" in of_controls:
+            controls_dict["convectionFan2Area"] = int(of_controls["convection_fan2_area"])
+
+        if "frost_protection_active" in of_controls:
+            controls_dict["frostProtectionActive"] = bool(of_controls["frost_protection_active"])
+        if "frost_protection_temperature" in of_controls:
+            controls_dict["frostProtectionTemperature"] = int(of_controls["frost_protection_temperature"])
+        if "room_temperature_offset" in of_controls:
+            controls_dict["temperatureOffset"] = float(of_controls["room_temperature_offset"])
+        if "eco_mode" in of_controls:
+            controls_dict["ecoMode"] = bool(of_controls["eco_mode"])
+
+        controls_dict["revision"] = int(raw_data.get("revision", 0))
+
+        # 3. Stove features
+        if "air_flaps_percent" in of_sensors or "airFlaps" in raw_s:
+            stove_features["airFlaps"] = True
+        if "convection_fan1_active" in of_controls or "convection_fan1_level" in of_controls:
+            stove_features["multiAir1"] = True
+        if "convection_fan2_active" in of_controls or "convection_fan2_level" in of_controls:
+            stove_features["multiAir2"] = True
+        if "logRuntime" in raw_s:
+            stove_features["logRuntime"] = True
+
+        model_name = of_stove.get("model_name") or raw_data.get("model_name")
+
+        return {
+            "stoveId": stove_id,
+            "stoveType": model_name,
+            "lastSeenMinutes": 0,
+            "sensors": sensors_dict,
+            "controls": controls_dict,
+            "stoveFeatures": stove_features,
+            "raw": raw_data,
+        }
+
     def _notify_command_timeout(self, stove, elapsed: float, timeout: int):
         """Notify the user and fire an event when stove commands exceed the timeout."""
         try:
@@ -265,6 +546,66 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
     def set_stove_controls(self, stove_id, controls):
         _LOGGER.debug(f"set_stove_controls for {stove_id}, data: {str(controls)}")
+        
+        if self.is_local_mode():
+            # Formatage de la commande pour l'API REST locale Open Firenet: POST /api/controls
+            payload = {}
+            if "onOff" in controls:
+                payload["on"] = bool(controls["onOff"])
+            if "operatingMode" in controls:
+                mode_int = int(controls["operatingMode"])
+                mode_map = {0: "manual", 1: "auto", 2: "comfort"}
+                payload["mode"] = mode_map.get(mode_int, "manual")
+            if "targetTemperature" in controls and controls["targetTemperature"] is not None:
+                payload["target_temperature"] = float(controls["targetTemperature"])
+            if "heatingPower" in controls and controls["heatingPower"] is not None:
+                payload["power_percent"] = int(controls["heatingPower"])
+            if "heatingTimesActiveForComfort" in controls:
+                payload["heating_times_active"] = bool(controls["heatingTimesActiveForComfort"])
+            if "setBackTemperature" in controls and controls["setBackTemperature"] is not None:
+                payload["setback_temperature"] = float(controls["setBackTemperature"])
+            if "convectionFan1Active" in controls:
+                payload["convection_fan1_active"] = bool(controls["convectionFan1Active"])
+            if "convectionFan1Level" in controls and controls["convectionFan1Level"] is not None:
+                payload["convection_fan1_level"] = int(controls["convectionFan1Level"])
+            if "convectionFan1Area" in controls and controls["convectionFan1Area"] is not None:
+                payload["convection_fan1_area"] = int(controls["convectionFan1Area"])
+            if "convectionFan2Active" in controls:
+                payload["convection_fan2_active"] = bool(controls["convectionFan2Active"])
+            if "convectionFan2Level" in controls and controls["convectionFan2Level"] is not None:
+                payload["convection_fan2_level"] = int(controls["convectionFan2Level"])
+            if "convectionFan2Area" in controls and controls["convectionFan2Area"] is not None:
+                payload["convection_fan2_area"] = int(controls["convectionFan2Area"])
+            if "frostProtectionActive" in controls:
+                payload["frost_protection_active"] = bool(controls["frostProtectionActive"])
+            if "frostProtectionTemperature" in controls and controls["frostProtectionTemperature"] is not None:
+                payload["frost_protection_temperature"] = int(controls["frostProtectionTemperature"])
+            if "temperatureOffset" in controls and controls["temperatureOffset"] is not None:
+                payload["room_temperature_offset"] = float(controls["temperatureOffset"])
+            if "ecoMode" in controls:
+                payload["eco_mode"] = bool(controls["ecoMode"])
+
+            for attempt in range(3):
+                _LOGGER.info(f'Attempting to update local Open Firenet controls ({attempt + 1}/3)')
+                try:
+                    url = self._get_local_url("/api/controls")
+                    response = self._client.post(url, json=payload, timeout=10)
+                    if response.status_code in [200, 204]:
+                        _LOGGER.info('Open Firenet controls updated successfully via local HTTP API.')
+                        self._number_fail = 0
+                        return self.get_stove_state(stove_id)
+                    else:
+                        _LOGGER.warning(f"Local Open Firenet returned error: {response.status_code} - {response.text}")
+                except requests.exceptions.RequestException as e:
+                    _LOGGER.warning(f"Network error on attempt {attempt + 1} for local Open Firenet: {e}")
+
+                self._number_fail += 1
+                if attempt < 2:
+                    time.sleep(1)
+            _LOGGER.error(f'Failed to update local Open Firenet controls after 3 attempts')
+            return None
+
+        # Mode Cloud Rika Firenet d'origine
         # Always obtain the fresh revision from the cloud to prevent 404 Outdated Revision
         current_state = self.get_stove_state(stove_id)
         if current_state and 'controls' in current_state and 'revision' in current_state['controls']:
@@ -935,6 +1276,15 @@ class RikaFirenetStove:
             val = self._state['sensors'].get('inputExternalRequest')
             return bool(val) if val is not None else False
         return False
+
+    def get_configuration_url(self) -> str:
+        """Return the device configuration URL (local Open Firenet UI or cloud web page)."""
+        if self._coordinator.is_local_mode():
+            host = self._coordinator.get_host()
+            if not host.startswith("http://") and not host.startswith("https://"):
+                return f"http://{host}"
+            return host.rstrip('/')
+        return f"https://www.rika-firenet.com/web/stove/{self._id}"
 
     def get_status(self):
         """Return the status image and text key based on a set of rules."""

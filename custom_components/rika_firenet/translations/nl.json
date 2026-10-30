@@ -5,17 +5,22 @@
         "title": "Rika Firenet Verbinding",
         "description": "Configureer de verbinding met uw Rika Firenet-account om uw kachel te bedienen.",
         "data": {
+          "connection_type": "Verbindingstype",
+          "host": "Open Firenet Host / IP",
           "username": "Gebruikersnaam (E-mail)",
           "password": "Wachtwoord"
         },
         "data_description": {
-          "username": "Het e-mailadres waarmee u inlogt op www.rika-firenet.com",
-          "password": "Het wachtwoord voor uw Rika Firenet-account"
+          "connection_type": "Kies tussen Rika Firenet Cloud of een lokale directe HTTP-verbinding met Open Firenet.",
+          "host": "Hostnaam of lokaal IP-adres van de bridge (bijv. open-firenet.local of 192.168.1.50).",
+          "username": "Het e-mailadres waarmee u inlogt op www.rika-firenet.com (alleen Cloud)",
+          "password": "Het wachtwoord voor uw Rika Firenet-account (alleen Cloud)"
         }
       }
     },
     "error": {
-      "auth": "Gebruikersnaam of wachtwoord is onjuist."
+      "auth": "Gebruikersnaam of wachtwoord is onjuist.",
+      "cannot_connect": "Kan geen verbinding maken met de Open Firenet bridge."
     },
     "abort": {
       "single_instance_allowed": "Slechts één configuratie van Rika Firenet is toegestaan."
