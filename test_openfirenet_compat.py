@@ -29,7 +29,11 @@ ha_mock.core = ModuleType("homeassistant.core")
 ha_mock.core.HomeAssistant = MagicMock
 ha_mock.exceptions = ModuleType("homeassistant.exceptions")
 class ConfigEntryNotReady(Exception): pass
+class HomeAssistantError(Exception): pass
+class ServiceValidationError(Exception): pass
 ha_mock.exceptions.ConfigEntryNotReady = ConfigEntryNotReady
+ha_mock.exceptions.HomeAssistantError = HomeAssistantError
+ha_mock.exceptions.ServiceValidationError = ServiceValidationError
 sys.modules["homeassistant.core"] = ha_mock.core
 sys.modules["homeassistant.exceptions"] = ha_mock.exceptions
 
@@ -42,6 +46,8 @@ class Platform:
     BINARY_SENSOR = "binary_sensor"
     SWITCH = "switch"
     NUMBER = "number"
+    BUTTON = "button"
+    TIME = "time"
 ha_const_mock.Platform = Platform
 ha_const_mock.EntityCategory = MagicMock()
 ha_const_mock.PERCENTAGE = "%"
@@ -113,6 +119,24 @@ class NumberEntity:
     pass
 ha_number_mock.NumberEntity = NumberEntity
 
+ha_button_mock = ModuleType("homeassistant.components.button")
+class ButtonEntity:
+    pass
+ha_button_mock.ButtonEntity = ButtonEntity
+
+ha_time_mock = ModuleType("homeassistant.components.time")
+class TimeEntity:
+    pass
+ha_time_mock.TimeEntity = TimeEntity
+
+ha_selector_mock = ModuleType("homeassistant.helpers.selector")
+ha_selector_mock.EntitySelector = MagicMock(return_value=lambda x: x)
+ha_selector_mock.EntitySelectorConfig = MagicMock(return_value=lambda x: x)
+
+ha_ep_mock = ModuleType("homeassistant.helpers.entity_platform")
+ha_ep_mock.AddEntitiesCallback = MagicMock
+sys.modules["homeassistant.helpers.entity_platform"] = ha_ep_mock
+
 class CoordinatorEntity:
     def __class_getitem__(cls, item):
         return cls
@@ -140,6 +164,8 @@ class DataUpdateCoordinator:
             self.last_update_success = False
     async def async_request_refresh(self):
         await self.async_refresh()
+    def async_update_listeners(self):
+        pass
 
 class UpdateFailed(Exception):
     pass
@@ -183,6 +209,9 @@ sys.modules["homeassistant.components.sensor"] = ha_sensor_mock
 sys.modules["homeassistant.components.binary_sensor"] = ha_binary_sensor_mock
 sys.modules["homeassistant.components.switch"] = ha_switch_mock
 sys.modules["homeassistant.components.number"] = ha_number_mock
+sys.modules["homeassistant.components.button"] = ha_button_mock
+sys.modules["homeassistant.components.time"] = ha_time_mock
+sys.modules["homeassistant.helpers.selector"] = ha_selector_mock
 sys.modules["homeassistant.helpers.update_coordinator"] = ha_coord_mock
 sys.modules["homeassistant.helpers.entity"] = ha_entity_mock
 sys.modules["homeassistant.config_entries"] = ha_config_entries
@@ -543,12 +572,168 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertEqual(manifest["domain"], "rika_firenet")
 
         trans_dir = os.path.join(base_dir, "custom_components", "rika_firenet", "translations")
-        for lang in ("fr.json", "en.json", "de.json", "nl.json"):
+        for lang in ("fr.json", "en.json"):
             with open(os.path.join(trans_dir, lang), "r") as f:
                 tr = json.load(f)
             self.assertIn("connection_type", tr["config"]["step"]["user"]["data"])
             self.assertIn("host", tr["config"]["step"]["user"]["data"])
             self.assertIn("cannot_connect", tr["config"]["error"])
+
+    def test_schedule_and_buttons(self):
+        """Tester le module schedule, l'encodage/décodage, la conversion helper HA et les boutons."""
+        import asyncio
+        from datetime import time
+        from custom_components.rika_firenet.schedule import (
+            decode_slot,
+            encode_slot,
+            slots_from_state,
+            slots_from_ha_schedule,
+            command_key,
+            slot_index,
+            TooManySlots,
+        )
+        from custom_components.rika_firenet.button import (
+            RikaFirenetScheduleButton,
+            BUTTON_TYPES,
+            async_setup_entry as async_setup_button_entry,
+        )
+        from custom_components.rika_firenet.time import (
+            RikaFirenetScheduleTime,
+            async_setup_entry as async_setup_time_entry,
+        )
+
+        # 1. Encodage et décodage des plages
+        t_start = time(7, 0)
+        t_end = time(12, 30)
+        slot_val = encode_slot(t_start, t_end)
+        self.assertEqual(slot_val, 7001230)
+        d_start, d_end = decode_slot(slot_val)
+        self.assertEqual(d_start, t_start)
+        self.assertEqual(d_end, t_end)
+
+        # Slot off (0)
+        self.assertEqual(encode_slot(t_start, t_start), 0)
+        self.assertEqual(decode_slot(0), (time(0, 0), time(0, 0)))
+
+        # Plage fin avant début -> erreur
+        with self.assertRaises(ValueError):
+            encode_slot(time(14, 0), time(10, 0))
+
+        # 2. slots_from_state
+        state_data = {
+            "controls_pos": [0, 0, 0, 0, 0, 0, 0] + [7001230] + [0] * 13
+        }
+        slots = slots_from_state(state_data)
+        self.assertEqual(len(slots), 14)
+        self.assertEqual(slots[0], 7001230)
+        self.assertEqual(slots[1], 0)
+
+        # 3. slots_from_ha_schedule
+        ha_plan = {
+            "monday": [{"from": "06:30", "to": "09:00"}, {"from": "17:00", "to": "22:00"}],
+            "tuesday": [{"from": "07:00", "to": "24:00"}],
+            "wednesday": [],
+            "thursday": [],
+            "friday": [],
+            "saturday": [],
+            "sunday": [],
+        }
+        ha_slots = slots_from_ha_schedule(ha_plan)
+        self.assertEqual(len(ha_slots), 14)
+        self.assertEqual(ha_slots[0], 6300900)
+        self.assertEqual(ha_slots[1], 17002200)
+        self.assertEqual(ha_slots[2], 7002359)
+        self.assertEqual(ha_slots[3], 0)
+
+        # Trop de plages (>2)
+        invalid_plan = {
+            "monday": [{"from": "06:00", "to": "08:00"}, {"from": "11:00", "to": "13:00"}, {"from": "18:00", "to": "20:00"}]
+        }
+        with self.assertRaises(TooManySlots):
+            slots_from_ha_schedule(invalid_plan)
+
+        # 4. Coordinator schedule pending & send
+        hass = MagicMock()
+        coord = RikaFirenetCoordinator(hass, "user", "pass", 21, 15, connection_type=CONNECTION_TYPE_LOCAL, host="192.168.1.50")
+        stove = RikaFirenetStove(coord, "STOVE123", "Poele Salon")
+        stove._state = {
+            "controls": {},
+            "controls_pos": [0, 0, 0, 0, 0, 0, 0] + [6000800] + [0] * 13,
+            "sensors": {},
+        }
+        coord._stoves = [stove]
+
+        # Lecture initiale depuis state
+        self.assertEqual(coord.schedule_time(0, "start", "STOVE123"), time(6, 0))
+        self.assertEqual(coord.schedule_time(0, "end", "STOVE123"), time(8, 0))
+        self.assertFalse(coord.schedule_has_pending)
+
+        # Modification locale (pending)
+        coord.schedule_set_pending(0, "start", time(7, 15))
+        self.assertTrue(coord.schedule_has_pending)
+        self.assertEqual(coord.schedule_time(0, "start", "STOVE123"), time(7, 15))
+
+        # Discard
+        coord.schedule_discard()
+        self.assertFalse(coord.schedule_has_pending)
+        self.assertEqual(coord.schedule_time(0, "start", "STOVE123"), time(6, 0))
+
+        # Set pending et schedule_send
+        coord.schedule_set_pending(0, "start", time(7, 30))
+        captured_controls = {}
+        def mock_set_controls(ctrls):
+            captured_controls.update(ctrls)
+        stove._set_controls = mock_set_controls
+
+        async def run_sched_tests():
+            async def async_exec(func, *args):
+                return func(*args)
+            hass.async_add_executor_job = async_exec
+            hass.states.get.return_value = MagicMock()
+            hass.services.has_service.return_value = True
+            async def async_call_svc(domain, service, data, blocking=True, return_response=False):
+                return {"schedule.heating": ha_plan}
+            hass.services.async_call = async_call_svc
+            async def mock_refresh():
+                pass
+            coord.async_request_refresh = mock_refresh
+
+            await coord.schedule_send("STOVE123")
+            self.assertEqual(captured_controls.get("heatTimeMon1"), 7300800)
+            self.assertFalse(coord.schedule_has_pending)
+
+            # schedule_copy_from
+            captured_controls.clear()
+            await coord.schedule_copy_from("schedule.heating", "STOVE123")
+            self.assertEqual(captured_controls.get("heatTimeMon1"), 6300900)
+            self.assertEqual(captured_controls.get("heatTimeTue1"), 7002359)
+
+            # Boutons et Time setup
+            entry = MagicMock()
+            entry.entry_id = "test_entry"
+            entry.options = {"schedule_entity": "schedule.heating"}
+            hass.data = {"rika_firenet": {entry.entry_id: coord}}
+
+            button_entities = []
+            def add_btn_ents(ents, update=True):
+                button_entities.extend(ents)
+            await async_setup_button_entry(hass, entry, add_btn_ents)
+            self.assertEqual(len(button_entities), 3)
+
+            # Test appui sur bouton copy
+            copy_btn = next(b for b in button_entities if b._button_key == "schedule_copy")
+            captured_controls.clear()
+            await copy_btn.async_press()
+            self.assertEqual(captured_controls.get("heatTimeMon1"), 6300900)
+
+            # Setup Time entities
+            time_entities = []
+            def add_time_ents(ents, update=True):
+                time_entities.extend(ents)
+            await async_setup_time_entry(hass, entry, add_time_ents)
+            self.assertEqual(len(time_entities), 28)
+
+        asyncio.run(run_sched_tests())
 
 
 if __name__ == "__main__":

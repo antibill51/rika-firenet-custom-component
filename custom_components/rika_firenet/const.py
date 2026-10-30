@@ -21,6 +21,7 @@ CONF_DEFAULT_TEMPERATURE = "defaultTemperature"
 CONF_DEFAULT_SCAN_INTERVAL  = "defaultScanInterval"
 CONF_PENDING_TIMEOUT = "pendingTimeout"
 DEFAULT_PENDING_TIMEOUT = 300
+CONF_SCHEDULE_ENTITY = "schedule_entity"
 DATA = "data"
 UPDATE_TRACK = "update_track"
 
@@ -32,6 +33,8 @@ PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.SWITCH,
     Platform.NUMBER,
+    Platform.BUTTON,
+    Platform.TIME,
 ]
 
 # Types

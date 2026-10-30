@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 from homeassistant.components.climate.const import HVACAction, HVACMode, PRESET_COMFORT, PRESET_NONE
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .const import (
     DOMAIN,
@@ -15,6 +16,15 @@ from .const import (
     CONNECTION_TYPE_CLOUD,
     CONNECTION_TYPE_LOCAL,
     CONF_HOST_DEFAULT,
+)
+from .schedule import (
+    SLOT_COUNT,
+    TooManySlots,
+    command_key,
+    decode_slot,
+    encode_slot,
+    slots_from_ha_schedule,
+    slots_from_state,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,6 +53,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         self._stoves: list[RikaFirenetStove] = [] # Type hinting for clarity
         self._number_fail = 0
         self.platforms = []
+        self._schedule_pending = {}
 
         super().__init__(
             hass,
@@ -147,6 +158,13 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
     def get_stoves(self):
         return self._stoves
+
+    def get_stove(self, stove_id):
+        """Return stove by ID."""
+        for stove in self._stoves:
+            if str(stove.get_id()) == str(stove_id):
+                return stove
+        return None
 
     def get_default_temperature(self):
         return self._default_temperature
@@ -720,6 +738,111 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                     _LOGGER.warning(f"Could not get new revision for stove {stove_id} before retry.")
         _LOGGER.error(f'Failed to update stove {stove_id} controls after 3 attempts')
         return None # Indicate persistent failure
+
+    # --- heating schedule support (local Open Firenet & cloud) -----------------
+
+    @property
+    def schedule_has_pending(self) -> bool:
+        return bool(self._schedule_pending)
+
+    def schedule_time(self, index: int, edge: str, stove_id: str | None = None):
+        """Start or end of a slot: the pending change if there is one, else the stove's value."""
+        pending = self._schedule_pending.get((index, edge))
+        if pending is not None:
+            return pending
+
+        stove = None
+        if stove_id:
+            stove = self.get_stove(stove_id)
+        elif self._stoves:
+            stove = self._stoves[0]
+
+        state = stove._state if stove else None
+        slots = slots_from_state(state)
+        decoded = decode_slot(slots[index]) if slots and index < len(slots) else None
+        if decoded is None:
+            return None
+        return decoded[0] if edge == "start" else decoded[1]
+
+    def schedule_set_pending(self, index: int, edge: str, value) -> None:
+        """Keep a changed time; nothing is sent to the stove before schedule_send()."""
+        self._schedule_pending[(index, edge)] = value.replace(second=0, microsecond=0)
+        self.async_update_listeners()
+
+    def schedule_discard(self) -> None:
+        self._schedule_pending.clear()
+        self.async_update_listeners()
+
+    async def schedule_send(self, stove_id: str | None = None) -> None:
+        """Send every slot that has a pending change, in one command."""
+        stove = None
+        if stove_id:
+            stove = self.get_stove(stove_id)
+        elif self._stoves:
+            stove = self._stoves[0]
+
+        if not stove:
+            raise HomeAssistantError("No stove available to send schedule.")
+
+        slots = slots_from_state(stove._state)
+        if slots is None:
+            raise HomeAssistantError("Stove not ready to receive schedule.")
+
+        command: dict[str, int] = {}
+        for index in sorted({i for i, _ in self._schedule_pending}):
+            start = self.schedule_time(index, "start", stove.get_id())
+            end = self.schedule_time(index, "end", stove.get_id())
+            if start is None or end is None:
+                raise HomeAssistantError("Stove schedule slot values are not available.")
+            try:
+                command[command_key(index)] = encode_slot(start, end)
+            except ValueError as err:
+                raise ServiceValidationError(
+                    f"Slot {command_key(index).removeprefix('heatTime')}: the end ({end.strftime('%H:%M')}) is before the start ({start.strftime('%H:%M')})."
+                ) from err
+
+        if not command:
+            return
+
+        await self.hass.async_add_executor_job(stove._set_controls, command)
+        self._schedule_pending.clear()
+        await self.async_request_refresh()
+
+    async def schedule_copy_from(self, schedule_entity: str | None, stove_id: str | None = None) -> None:
+        """Send the weekly plan of a Home Assistant schedule to the stove: all 14 slots, in one command."""
+        if not schedule_entity:
+            raise ServiceValidationError("No schedule entity is chosen in options.")
+
+        if self.hass.states.get(schedule_entity) is None or not self.hass.services.has_service("schedule", "get_schedule"):
+            raise ServiceValidationError(f"The schedule entity '{schedule_entity}' cannot be read.")
+
+        response = await self.hass.services.async_call(
+            "schedule", "get_schedule", {"entity_id": schedule_entity}, blocking=True, return_response=True
+        )
+        plan = (response or {}).get(schedule_entity)
+        if not isinstance(plan, dict):
+            raise ServiceValidationError(f"The schedule plan for '{schedule_entity}' is empty or invalid.")
+
+        try:
+            slots = slots_from_ha_schedule(plan)
+        except TooManySlots as err:
+            raise ServiceValidationError(
+                f"The stove takes two time ranges per day, and {err.weekday} has {err.count} in this schedule."
+            ) from err
+
+        stove = None
+        if stove_id:
+            stove = self.get_stove(stove_id)
+        elif self._stoves:
+            stove = self._stoves[0]
+
+        if not stove:
+            raise HomeAssistantError("No stove available to send schedule.")
+
+        command = {command_key(i): slots[i] for i in range(SLOT_COUNT)}
+        await self.hass.async_add_executor_job(stove._set_controls, command)
+        self._schedule_pending.clear()
+        await self.async_request_refresh()
 
 STATUS_RULES = [
     # Priority 1: Errors, connectivity, and critical warnings

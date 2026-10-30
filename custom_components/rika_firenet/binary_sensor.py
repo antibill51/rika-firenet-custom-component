@@ -32,6 +32,11 @@ BINARY_SENSOR_ATTRIBUTES = {
         "category": EntityCategory.DIAGNOSTIC,
         "is_on_func": lambda stove: stove.is_external_request(),
     },
+    "schedule pending": {
+        "device_class": None,
+        "category": EntityCategory.DIAGNOSTIC,
+        "is_on_func": lambda stove: stove._coordinator.schedule_has_pending,
+    },
 }
 
 async def async_setup_entry(hass, entry, async_add_entities):

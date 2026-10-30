@@ -39,7 +39,10 @@
           "sensor": "Enable measurement sensors",
           "binary_sensor": "Enable binary sensors",
           "switch": "Enable control switches",
-          "number": "Enable numeric adjustments"
+          "number": "Enable numeric adjustments",
+          "schedule_entity": "Schedule to copy to the stove (HA Helper)",
+          "button": "Enable action buttons (Button)",
+          "time": "Enable time entities (Time)"
         },
         "data_description": {
           "defaultTemperature": "Fallback setpoint temperature used by default if not specified (default: 21 °C).",
@@ -49,7 +52,10 @@
           "sensor": "Exposes sensors: room temperature, pellet consumption, power, fan velocity, etc.",
           "binary_sensor": "Exposes binary sensors: door open, pellet lid, Wi-Fi signal, grid contact, etc.",
           "switch": "Exposes on/off controls: stove on/off, heating times, convection fans.",
-          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature."
+          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature.",
+          "schedule_entity": "Optional. A Home Assistant schedule helper drawn as a weekly grid. The \"Copy schedule to the stove\" button sends it to the stove.",
+          "button": "Exposes buttons to copy, send, or discard heating schedule.",
+          "time": "Exposes individual time entities for each day slot."
         }
       },
       "user": {
@@ -63,7 +69,10 @@
           "sensor": "Enable measurement sensors",
           "binary_sensor": "Enable binary sensors",
           "switch": "Enable control switches",
-          "number": "Enable numeric adjustments"
+          "number": "Enable numeric adjustments",
+          "schedule_entity": "Schedule to copy to the stove (HA Helper)",
+          "button": "Enable action buttons (Button)",
+          "time": "Enable time entities (Time)"
         },
         "data_description": {
           "defaultTemperature": "Fallback setpoint temperature used by default if not specified (default: 21 °C).",
@@ -73,7 +82,10 @@
           "sensor": "Exposes sensors: room temperature, pellet consumption, power, fan velocity, etc.",
           "binary_sensor": "Exposes binary sensors: door open, pellet lid, Wi-Fi signal, grid contact, etc.",
           "switch": "Exposes on/off controls: stove on/off, heating times, convection fans.",
-          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature."
+          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature.",
+          "schedule_entity": "Optional. A Home Assistant schedule helper drawn as a weekly grid. The \"Copy schedule to the stove\" button sends it to the stove.",
+          "button": "Exposes buttons to copy, send, or discard heating schedule.",
+          "time": "Exposes individual time entities for each day slot."
         }
       }
     }
@@ -119,6 +131,108 @@
           "comfort": "Comfort",
           "none": "Normal"
         }
+      }
+    },
+    "button": {
+      "schedule_copy": {
+        "name": "Copy schedule to the stove"
+      },
+      "schedule_send": {
+        "name": "Send schedule to the stove"
+      },
+      "schedule_discard": {
+        "name": "Discard schedule changes"
+      }
+    },
+    "binary_sensor": {
+      "schedule pending": {
+        "name": "Schedule changes pending"
+      }
+    },
+    "time": {
+      "schedule_mon_1_start": {
+        "name": "Monday slot 1 start"
+      },
+      "schedule_mon_1_end": {
+        "name": "Monday slot 1 end"
+      },
+      "schedule_mon_2_start": {
+        "name": "Monday slot 2 start"
+      },
+      "schedule_mon_2_end": {
+        "name": "Monday slot 2 end"
+      },
+      "schedule_tue_1_start": {
+        "name": "Tuesday slot 1 start"
+      },
+      "schedule_tue_1_end": {
+        "name": "Tuesday slot 1 end"
+      },
+      "schedule_tue_2_start": {
+        "name": "Tuesday slot 2 start"
+      },
+      "schedule_tue_2_end": {
+        "name": "Tuesday slot 2 end"
+      },
+      "schedule_wed_1_start": {
+        "name": "Wednesday slot 1 start"
+      },
+      "schedule_wed_1_end": {
+        "name": "Wednesday slot 1 end"
+      },
+      "schedule_wed_2_start": {
+        "name": "Wednesday slot 2 start"
+      },
+      "schedule_wed_2_end": {
+        "name": "Wednesday slot 2 end"
+      },
+      "schedule_thu_1_start": {
+        "name": "Thursday slot 1 start"
+      },
+      "schedule_thu_1_end": {
+        "name": "Thursday slot 1 end"
+      },
+      "schedule_thu_2_start": {
+        "name": "Thursday slot 2 start"
+      },
+      "schedule_thu_2_end": {
+        "name": "Thursday slot 2 end"
+      },
+      "schedule_fri_1_start": {
+        "name": "Friday slot 1 start"
+      },
+      "schedule_fri_1_end": {
+        "name": "Friday slot 1 end"
+      },
+      "schedule_fri_2_start": {
+        "name": "Friday slot 2 start"
+      },
+      "schedule_fri_2_end": {
+        "name": "Friday slot 2 end"
+      },
+      "schedule_sat_1_start": {
+        "name": "Saturday slot 1 start"
+      },
+      "schedule_sat_1_end": {
+        "name": "Saturday slot 1 end"
+      },
+      "schedule_sat_2_start": {
+        "name": "Saturday slot 2 start"
+      },
+      "schedule_sat_2_end": {
+        "name": "Saturday slot 2 end"
+      },
+      "schedule_sun_1_start": {
+        "name": "Sunday slot 1 start"
+      },
+      "schedule_sun_1_end": {
+        "name": "Sunday slot 1 end"
+      },
+      "schedule_sun_2_start": {
+        "name": "Sunday slot 2 start"
+      },
+      "schedule_sun_2_end": {
+        "name": "Sunday slot 2 end"
       }
     }
   }

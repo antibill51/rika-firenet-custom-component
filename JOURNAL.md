@@ -26,3 +26,16 @@
   - `custom_components/rika_firenet/core.py` : ajout des méthodes `get_board_temperature()`, `get_outputAirFlapsTargetPosition()`, `get_bake_temperature()` et `set_bake_temperature()` sur `RikaFirenetStove` ; contextualisation du message de notification `_notify_command_timeout()` ("le pont local Open Firenet" vs "le cloud").
   - `custom_components/rika_firenet/sensor.py` : exposition des capteurs diagnostics `board temperature` (°C) et `airflaps target` (%) lorsqu'ils sont disponibles sur le poêle, en parité avec `firenet_mqtt.h`.
   - `test_openfirenet_compat.py` : ajout des assertions sur `board temperature`, `airflaps target`, `bakeTemperature` et `_notify_command_timeout()`.
+
+## 2026-10-30 - Intégration de la gestion des plages horaires de chauffe (Schedule & Buttons)
+- **Modèle** : Gemini 3.8 Flash (Low)
+- **Objectif** : Conserver l'intégralité du design et des entités existantes de `rika_firenet`, tout en offrant la possibilité de synchroniser et régler les plages de chauffe depuis Home Assistant (parité avec le composant dédié `open-firenet-ha`).
+- **Nouveaux modules & fonctionnalités** :
+  - `custom_components/rika_firenet/schedule.py` : portage de l'algorithme d'encodage/décodage des plages hebdomadaires (7 jours, 2 créneaux/jour sous format `HHMMHHMM` ou `0` pour désactivé) et conversion depuis les grilles HA Schedule Helpers (`schedule_entity`).
+  - `custom_components/rika_firenet/button.py` : ajout de la plateforme `button` avec `schedule_copy` (copie le helper HA sélectionné vers le poêle), `schedule_send` (envoie les créneaux modifiés) et `schedule_discard` (annule les modifications en attente).
+  - `custom_components/rika_firenet/time.py` : ajout de la plateforme `time` (28 entités désactivées par défaut pour ajuster manuellement chaque début/fin de plage si souhaité).
+  - `custom_components/rika_firenet/binary_sensor.py` : ajout du binary sensor diagnostic `schedule pending` reflétant si des plages sont en attente d'envoi.
+  - `custom_components/rika_firenet/config_flow.py` & `const.py` : ajout de l'option `CONF_SCHEDULE_ENTITY` avec sélecteur d'entité `schedule` et ajout des plateformes `Platform.BUTTON` et `Platform.TIME`.
+  - `custom_components/rika_firenet/translations/` : mise à jour des traductions `fr.json` et `en.json` pour tous les nouveaux boutons, entités horaires et options.
+- **Tests & Validation** :
+  - `test_openfirenet_compat.py` : ajout du test `test_schedule_and_buttons` vérifiant l'encodage, le décodage, la validation des plages, la détection des dépassements (> 2 plages), l'interaction du coordinateur, l'instanciation des boutons et des entités `time`. 100% des tests validés (7 tests avec succès).

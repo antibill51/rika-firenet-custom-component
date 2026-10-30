@@ -2,12 +2,14 @@ import logging
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_DEFAULT_TEMPERATURE,
     CONF_DEFAULT_SCAN_INTERVAL,
     CONF_PENDING_TIMEOUT,
     DEFAULT_PENDING_TIMEOUT,
+    CONF_SCHEDULE_ENTITY,
     CONF_PASSWORD,
     CONF_USERNAME,
     CONF_HOST,
@@ -146,6 +148,10 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
                 CONF_PENDING_TIMEOUT,
                 default=current_timeout,
             ): int,
+            vol.Optional(
+                CONF_SCHEDULE_ENTITY,
+                description={"suggested_value": options.get(CONF_SCHEDULE_ENTITY)},
+            ): selector.EntitySelector(selector.EntitySelectorConfig(domain="schedule")),
         }
         
         for platform in sorted(PLATFORMS):
