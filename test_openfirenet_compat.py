@@ -135,6 +135,7 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertEqual(controls.get("operatingMode"), 2)
         self.assertEqual(controls.get("targetTemperature"), 18.0)
         self.assertEqual(controls.get("heatingPower"), 70)
+        self.assertEqual(controls.get("RoomPowerRequest"), 3)
         self.assertEqual(controls.get("frostProtectionActive"), True)
         self.assertEqual(controls.get("frostProtectionTemperature"), 8)
 
@@ -145,10 +146,63 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertEqual(stove.get_stove_temperature(), 18)
         self.assertEqual(stove.get_stove_consumption(), 7065)
         self.assertEqual(stove.get_stove_operation_mode(), 2)
+        self.assertEqual(stove.get_room_power_request(), 3)
         self.assertEqual(stove.get_configuration_url(), "http://192.168.1.50")
         self.assertTrue(stove.is_door_closed())
         self.assertTrue(stove.is_cover_closed())
         self.assertTrue(stove.is_grid_contact_ok())
+
+    def test_edge_cases_manual_null_and_disconnected(self):
+        """Vérifie le comportement en mode manuel (target_temperature=null), sans raw_sensors et poêle non lié."""
+        coord = RikaFirenetCoordinator(
+            self.hass,
+            username=None,
+            password=None,
+            default_temperature=21,
+            default_scan_interval=15,
+            connection_type=CONNECTION_TYPE_LOCAL,
+            host="192.168.1.50"
+        )
+        raw_edge = {
+            "device": {"connected": False, "wifi_rssi": -65},
+            "version_ack": False,
+            "stove": {"state_code": 0, "sub_state": 0, "model_name": None},
+            "sensors": {
+                "room_temperature": None,
+                "door_open": True,
+                "hopper_open": True,
+                "grid_problem": True,
+                "external_request": True,
+                "log_runtime_hours": 15,
+                "air_flaps_percent": None,
+            },
+            "controls": {
+                "on": True,
+                "mode": "manual",
+                "mode_code": 0,
+                "target_temperature": None,
+                "power_percent": 65,
+                "room_power_request": 2,
+                "eco_mode_possible": True,
+            },
+            "raw_sensors": {},
+        }
+        norm = coord._normalize_openfirenet_state(raw_edge, "stove_edge")
+        self.assertEqual(norm["lastSeenMinutes"], 99)
+        self.assertIsNone(norm["controls"]["targetTemperature"])
+        self.assertEqual(norm["controls"]["RoomPowerRequest"], 2)
+        self.assertTrue(norm["stoveFeatures"].get("ecoModePossible"))
+        self.assertTrue(norm["stoveFeatures"].get("logRuntime"))
+        self.assertFalse(norm["stoveFeatures"].get("airFlaps", False))
+
+        stove = RikaFirenetStove(coord, "stove_edge", "Rika Edge")
+        stove.update_internal_state(norm)
+        self.assertEqual(stove.get_status_text(), "offline")
+        self.assertFalse(stove.is_door_closed())
+        self.assertFalse(stove.is_cover_closed())
+        self.assertFalse(stove.is_grid_contact_ok())
+        self.assertTrue(stove.is_external_request())
+        self.assertEqual(stove.get_stove_runtime_logs(), 15)
 
     @patch("requests.Session.get")
     def test_setup_stoves_local(self, mock_get):

@@ -51,7 +51,7 @@ def get_switch_device_list(stove: RikaFirenetStove) -> list[str]:
     """Return the list of switch entities for a given stove."""
     switches_for_stove = list(BASE_DEVICE_SWITCHES)
 
-    if stove.is_airFlapsPossible():
+    if stove.is_ecoModePossible() or stove.is_airFlapsPossible():
         switches_for_stove.append("eco mode")
     if stove.is_multiAir1():
         switches_for_stove.append("convection fan1")

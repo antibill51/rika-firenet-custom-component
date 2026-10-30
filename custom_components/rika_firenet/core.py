@@ -347,7 +347,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         room_temp = of_sensors.get("room_temperature")
         if room_temp is not None:
             sensors_dict["inputRoomTemperature"] = str(room_temp)
-        elif "roomTemp" in raw_s:
+        elif "roomTemp" in raw_s and raw_s["roomTemp"] != 1024:
             sensors_dict["inputRoomTemperature"] = str(float(raw_s["roomTemp"]) / 10.0)
 
         flame_temp = of_sensors.get("combustion_temperature")
@@ -357,86 +357,102 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             sensors_dict["inputFlameTemperature"] = int(raw_s["flame"])
 
         # Consommation & heures
-        if "pellets_total_kg" in of_sensors:
+        if of_sensors.get("pellets_total_kg") is not None:
             sensors_dict["parameterFeedRateTotal"] = int(of_sensors["pellets_total_kg"])
         elif "pelletsTotal" in raw_s:
             sensors_dict["parameterFeedRateTotal"] = int(raw_s["pelletsTotal"])
 
-        if "pellet_hours" in of_sensors:
+        if of_sensors.get("pellet_hours") is not None:
             sensors_dict["parameterRuntimePellets"] = int(of_sensors["pellet_hours"])
         elif "pelletHours" in raw_s:
             sensors_dict["parameterRuntimePellets"] = int(raw_s["pelletHours"])
 
-        if "logRuntime" in raw_s:
+        if "logRuntime" in raw_s and raw_s["logRuntime"] is not None:
             sensors_dict["parameterRuntimeLogs"] = int(raw_s["logRuntime"])
+        elif of_sensors.get("log_runtime_hours") is not None:
+            sensors_dict["parameterRuntimeLogs"] = int(of_sensors["log_runtime_hours"]) * 60
 
-        if "service_countdown_kg" in of_sensors:
+        if of_sensors.get("service_countdown_kg") is not None:
             sensors_dict["parameterFeedRateService"] = int(of_sensors["service_countdown_kg"])
         elif "serviceCountdown" in raw_s:
             sensors_dict["parameterFeedRateService"] = int(raw_s["serviceCountdown"])
 
         # Moteurs et ventilateurs
-        if "fan_speed_rpm" in of_sensors:
+        if of_sensors.get("fan_speed_rpm") is not None:
             sensors_dict["outputIDFan"] = int(of_sensors["fan_speed_rpm"])
         elif "idFanMeas" in raw_s:
             sensors_dict["outputIDFan"] = int(raw_s["idFanMeas"])
 
-        if "auger_speed_rpm" in of_sensors:
+        if of_sensors.get("auger_speed_rpm") is not None:
             sensors_dict["outputDischargeMotor"] = int(of_sensors["auger_speed_rpm"])
         elif "augerSet" in raw_s:
             sensors_dict["outputDischargeMotor"] = int(raw_s["augerSet"])
 
-        if "air_flaps_percent" in of_sensors:
+        if of_sensors.get("air_flaps_percent") is not None:
             sensors_dict["outputAirFlaps"] = float(of_sensors["air_flaps_percent"]) * 10.0
-        elif "airFlaps" in raw_s:
+        elif "airFlaps" in raw_s and raw_s["airFlaps"] is not None:
             sensors_dict["outputAirFlaps"] = float(raw_s["airFlaps"])
 
         # États et sous-états
-        if "state_code" in of_stove:
+        if of_stove.get("state_code") is not None:
             sensors_dict["statusMainState"] = int(of_stove["state_code"])
         elif "mainState" in raw_s:
             sensors_dict["statusMainState"] = int(raw_s["mainState"])
 
-        if "sub_state" in of_stove:
+        if of_stove.get("sub_state") is not None:
             sensors_dict["statusSubState"] = int(of_stove["sub_state"])
         elif "subState" in raw_s:
             sensors_dict["statusSubState"] = int(raw_s["subState"])
 
-        if "error_code" in of_stove:
+        if of_stove.get("error_code") is not None:
             sensors_dict["statusError"] = int(of_stove["error_code"])
         elif "errMask32" in raw_s:
             sensors_dict["statusError"] = int(raw_s["errMask32"])
 
-        if "error_sub" in of_stove:
+        if of_stove.get("error_sub") is not None:
             sensors_dict["statusSubError"] = int(of_stove["error_sub"])
         elif "errSub" in raw_s:
             sensors_dict["statusSubError"] = int(raw_s["errSub"])
 
-        if "warning_code" in of_stove:
+        if of_stove.get("warning_code") is not None:
             sensors_dict["statusWarning"] = int(of_stove["warning_code"])
         elif "statusWarning" in raw_s:
             sensors_dict["statusWarning"] = int(raw_s["statusWarning"])
 
-        # Booléens & capteurs physiques
+        # Booléens & capteurs physiques (avec repli sur of_sensors.*)
         if "door" in raw_s:
             sensors_dict["inputDoor"] = int(raw_s["door"])
+        elif "door_open" in of_sensors and of_sensors["door_open"] is not None:
+            sensors_dict["inputDoor"] = 0 if bool(of_sensors["door_open"]) else 1
+
         if "hopperLidClosed" in raw_s:
             sensors_dict["inputCover"] = int(raw_s["hopperLidClosed"])
+        elif "hopper_open" in of_sensors and of_sensors["hopper_open"] is not None:
+            sensors_dict["inputCover"] = 0 if bool(of_sensors["hopper_open"]) else 1
+
         if "gridContact" in raw_s:
             sensors_dict["inputGridContact"] = int(raw_s["gridContact"])
+        elif "grid_problem" in of_sensors and of_sensors["grid_problem"] is not None:
+            sensors_dict["inputGridContact"] = 0 if bool(of_sensors["grid_problem"]) else 1
+
         if "externalRequest" in raw_s:
             sensors_dict["inputExternalRequest"] = int(raw_s["externalRequest"])
+        elif "external_request" in of_sensors and of_sensors["external_request"] is not None:
+            sensors_dict["inputExternalRequest"] = 1 if bool(of_sensors["external_request"]) else 0
+
         if "frostStarted" in raw_s:
             sensors_dict["statusFrostStarted"] = bool(raw_s["frostStarted"])
 
         # Wifi & Firmware
         device_meta = raw_data.get("device", {})
-        if "wifi_rssi" in device_meta:
+        if device_meta.get("wifi_rssi") is not None:
             sensors_dict["statusWifiStrength"] = int(device_meta["wifi_rssi"])
+        elif of_sensors.get("wifi_rssi") is not None:
+            sensors_dict["statusWifiStrength"] = int(of_sensors["wifi_rssi"])
         elif "rssi" in raw_s:
             sensors_dict["statusWifiStrength"] = int(raw_s["rssi"])
 
-        if "mainboard_version" in of_stove:
+        if of_stove.get("mainboard_version") is not None:
             mb_ver = str(of_stove["mainboard_version"]).replace(".", "")
             try:
                 sensors_dict["parameterVersionMainBoard"] = int(mb_ver)
@@ -447,65 +463,78 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
         # 2. Traitement des controls
         of_controls = raw_data.get("controls", {})
-        if "on" in of_controls:
+        if "on" in of_controls and of_controls["on"] is not None:
             controls_dict["onOff"] = bool(of_controls["on"])
-        if "mode_code" in of_controls:
+        if of_controls.get("mode_code") is not None:
             controls_dict["operatingMode"] = int(of_controls["mode_code"])
-        elif "mode" in of_controls:
+        elif of_controls.get("mode") is not None:
             mode_map = {"manual": 0, "auto": 1, "comfort": 2}
             controls_dict["operatingMode"] = mode_map.get(str(of_controls["mode"]).lower(), 0)
 
-        if "target_temperature" in of_controls:
+        if of_controls.get("target_temperature") is not None:
             controls_dict["targetTemperature"] = float(of_controls["target_temperature"])
-        if "power_percent" in of_controls:
+        else:
+            controls_dict["targetTemperature"] = None
+
+        if of_controls.get("power_percent") is not None:
             controls_dict["heatingPower"] = int(of_controls["power_percent"])
-            controls_dict["RoomPowerRequest"] = int(of_controls["power_percent"])
-        if "heating_times_active" in of_controls:
+
+        if of_controls.get("room_power_request") is not None:
+            controls_dict["RoomPowerRequest"] = int(of_controls["room_power_request"])
+        elif "roomSensorPower" in raw_s:
+            controls_dict["RoomPowerRequest"] = int(raw_s["roomSensorPower"])
+        else:
+            controls_dict["RoomPowerRequest"] = 3
+
+        if "heating_times_active" in of_controls and of_controls["heating_times_active"] is not None:
             controls_dict["heatingTimesActiveForComfort"] = bool(of_controls["heating_times_active"])
-        if "setback_temperature" in of_controls:
+        if of_controls.get("setback_temperature") is not None:
             controls_dict["setBackTemperature"] = float(of_controls["setback_temperature"])
 
-        if "convection_fan1_active" in of_controls:
+        if "convection_fan1_active" in of_controls and of_controls["convection_fan1_active"] is not None:
             controls_dict["convectionFan1Active"] = bool(of_controls["convection_fan1_active"])
-        if "convection_fan1_level" in of_controls:
+        if of_controls.get("convection_fan1_level") is not None:
             controls_dict["convectionFan1Level"] = int(of_controls["convection_fan1_level"])
-        if "convection_fan1_area" in of_controls:
+        if of_controls.get("convection_fan1_area") is not None:
             controls_dict["convectionFan1Area"] = int(of_controls["convection_fan1_area"])
 
-        if "convection_fan2_active" in of_controls:
+        if "convection_fan2_active" in of_controls and of_controls["convection_fan2_active"] is not None:
             controls_dict["convectionFan2Active"] = bool(of_controls["convection_fan2_active"])
-        if "convection_fan2_level" in of_controls:
+        if of_controls.get("convection_fan2_level") is not None:
             controls_dict["convectionFan2Level"] = int(of_controls["convection_fan2_level"])
-        if "convection_fan2_area" in of_controls:
+        if of_controls.get("convection_fan2_area") is not None:
             controls_dict["convectionFan2Area"] = int(of_controls["convection_fan2_area"])
 
-        if "frost_protection_active" in of_controls:
+        if "frost_protection_active" in of_controls and of_controls["frost_protection_active"] is not None:
             controls_dict["frostProtectionActive"] = bool(of_controls["frost_protection_active"])
-        if "frost_protection_temperature" in of_controls:
-            controls_dict["frostProtectionTemperature"] = int(of_controls["frost_protection_temperature"])
-        if "room_temperature_offset" in of_controls:
+        if of_controls.get("frost_protection_temperature") is not None:
+            controls_dict["frostProtectionTemperature"] = int(round(float(of_controls["frost_protection_temperature"])))
+        if of_controls.get("room_temperature_offset") is not None:
             controls_dict["temperatureOffset"] = float(of_controls["room_temperature_offset"])
-        if "eco_mode" in of_controls:
+        if "eco_mode" in of_controls and of_controls["eco_mode"] is not None:
             controls_dict["ecoMode"] = bool(of_controls["eco_mode"])
 
         controls_dict["revision"] = int(raw_data.get("revision", 0))
 
         # 3. Stove features
-        if "air_flaps_percent" in of_sensors or "airFlaps" in raw_s:
+        if of_sensors.get("air_flaps_percent") is not None or ("airFlaps" in raw_s and raw_s["airFlaps"] is not None):
             stove_features["airFlaps"] = True
+        if of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1:
+            stove_features["ecoModePossible"] = True
         if "convection_fan1_active" in of_controls or "convection_fan1_level" in of_controls:
             stove_features["multiAir1"] = True
         if "convection_fan2_active" in of_controls or "convection_fan2_level" in of_controls:
             stove_features["multiAir2"] = True
-        if "logRuntime" in raw_s:
+        if (raw_s.get("logRuntime") or 0) > 0 or (of_sensors.get("log_runtime_hours") or 0) > 0:
             stove_features["logRuntime"] = True
 
         model_name = of_stove.get("model_name") or raw_data.get("model_name")
+        is_linked = bool(raw_data.get("version_ack", True)) and bool(device_meta.get("connected", True))
 
         return {
             "stoveId": stove_id,
             "stoveType": model_name,
-            "lastSeenMinutes": 0,
+            "lastSeenMinutes": 0 if is_linked else 99,
             "sensors": sensors_dict,
             "controls": controls_dict,
             "stoveFeatures": stove_features,
@@ -560,6 +589,10 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                 payload["target_temperature"] = float(controls["targetTemperature"])
             if "heatingPower" in controls and controls["heatingPower"] is not None:
                 payload["power_percent"] = int(controls["heatingPower"])
+            if "RoomPowerRequest" in controls and controls["RoomPowerRequest"] is not None:
+                rpr = int(controls["RoomPowerRequest"])
+                if 1 <= rpr <= 4:
+                    payload["room_power_request"] = rpr
             if "heatingTimesActiveForComfort" in controls:
                 payload["heating_times_active"] = bool(controls["heatingTimesActiveForComfort"])
             if "setBackTemperature" in controls and controls["setBackTemperature"] is not None:
@@ -883,6 +916,8 @@ class RikaFirenetStove:
     def get_room_thermostat(self):
         if self._state and 'controls' in self._state and 'targetTemperature' in self._state['controls']:
             value = self._state['controls']['targetTemperature']
+            if value is None:
+                return None
             try:
                 return float(value)
             except (ValueError, TypeError):
@@ -1201,6 +1236,9 @@ class RikaFirenetStove:
     
     def is_airFlapsPossible(self):
         return bool(self._state.get('stoveFeatures', {}).get('airFlaps')) if self._state else False
+
+    def is_ecoModePossible(self):
+        return bool(self._state.get('stoveFeatures', {}).get('ecoModePossible')) if self._state else False
 
     def is_logRuntimePossible(self):
         return bool(self._state.get('stoveFeatures', {}).get('logRuntime')) if self._state else False
