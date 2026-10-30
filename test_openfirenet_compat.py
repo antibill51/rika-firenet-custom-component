@@ -226,6 +226,7 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         sensors = norm["sensors"]
         self.assertEqual(sensors.get("inputRoomTemperature"), "22.5")
         self.assertEqual(sensors.get("inputFlameTemperature"), 18)
+        self.assertEqual(sensors.get("inputBoardTemperature"), "27.0")
         self.assertEqual(sensors.get("parameterFeedRateTotal"), 7065)
         self.assertEqual(sensors.get("parameterRuntimePellets"), 4354)
         self.assertEqual(sensors.get("parameterFeedRateService"), 699)
@@ -245,12 +246,15 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertEqual(controls.get("RoomPowerRequest"), 3)
         self.assertEqual(controls.get("frostProtectionActive"), True)
         self.assertEqual(controls.get("frostProtectionTemperature"), 8)
+        self.assertEqual(controls.get("bakeTemperature"), 180)
 
         # Intégration Stove
         stove = RikaFirenetStove(coord, "stove_test", "Rika Test")
         stove.update_internal_state(norm)
         self.assertEqual(stove.get_room_temperature(), 22.5)
         self.assertEqual(stove.get_stove_temperature(), 18)
+        self.assertEqual(stove.get_board_temperature(), 27.0)
+        self.assertEqual(stove.get_bake_temperature(), 180)
         self.assertEqual(stove.get_stove_consumption(), 7065)
         self.assertEqual(stove.get_stove_operation_mode(), 2)
         self.assertEqual(stove.get_room_power_request(), 3)
@@ -258,6 +262,8 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertTrue(stove.is_door_closed())
         self.assertTrue(stove.is_cover_closed())
         self.assertTrue(stove.is_grid_contact_ok())
+        stove.set_bake_temperature(210)
+        self.assertEqual(stove.get_bake_temperature(), 210)
 
     def test_edge_cases_manual_null_and_disconnected(self):
         """Vérifie le comportement en mode manuel (target_temperature=null), sans raw_sensors et poêle non lié."""
@@ -421,9 +427,28 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         # Sensors
         sensor_names = get_sensor_device_list(stove)
         self.assertIn("stove consumption", sensor_names)
+        self.assertIn("board temperature", sensor_names)
         for s_name in sensor_names:
             s_ent = RikaFirenetStoveSensor(entry, stove, coord, s_name)
             _ = s_ent.native_value
+
+        # Test airflaps & airflaps target
+        af_state = dict(self.fixture_state)
+        af_state["sensors"] = dict(self.fixture_state["sensors"], air_flaps_percent=12.5, air_flaps_target_percent=15.0)
+        norm_af = coord._normalize_openfirenet_state(af_state, "stove_af")
+        stove_af = RikaFirenetStove(coord, "stove_af", "Rika AF")
+        stove_af.update_internal_state(norm_af)
+        af_sensors = get_sensor_device_list(stove_af)
+        self.assertIn("airflaps", af_sensors)
+        self.assertIn("airflaps target", af_sensors)
+        self.assertEqual(stove_af.get_outputAirFlaps(), 12.5)
+        self.assertEqual(stove_af.get_outputAirFlapsTargetPosition(), 15.0)
+
+        # Test notification de timeout local vs cloud
+        coord._notify_command_timeout(stove, 305, 300)
+        self.hass.services.call.assert_called()
+        call_args = self.hass.services.call.call_args[0]
+        self.assertIn("le pont local Open Firenet", call_args[2]["message"])
 
         # Binary Sensors
         for bs_name in BINARY_SENSOR_ATTRIBUTES:

@@ -51,6 +51,14 @@ SENSOR_ATTRIBUTES = {
         "state_class": SensorStateClass.MEASUREMENT,
         "device_class": SensorDeviceClass.TEMPERATURE,
     },
+    "board temperature": {
+        "unit": UnitOfTemperature.CELSIUS,
+        "icon": "mdi:thermometer",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_board_temperature",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "device_class": SensorDeviceClass.TEMPERATURE,
+    },
     "room temperature": {
         "unit": UnitOfTemperature.CELSIUS,
         "icon": "mdi:thermometer",
@@ -98,6 +106,13 @@ SENSOR_ATTRIBUTES = {
         "icon": "mdi:rotate-right",
         "category": EntityCategory.DIAGNOSTIC,
         "command": "get_outputAirFlaps",
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    "airflaps target": {
+        "unit": PERCENTAGE,
+        "icon": "mdi:rotate-right",
+        "category": EntityCategory.DIAGNOSTIC,
+        "command": "get_outputAirFlapsTargetPosition",
         "state_class": SensorStateClass.MEASUREMENT,
     },
     "number fail": {
@@ -168,7 +183,9 @@ def get_sensor_device_list(stove: RikaFirenetStove) -> list[str]:
     if stove.is_logRuntimePossible():
         sensors_for_stove.append("stove runtime logs")
     if stove.is_airFlapsPossible():
-        sensors_for_stove.append("airflaps")
+        sensors_for_stove.extend(["airflaps", "airflaps target"])
+    if stove.get_board_temperature() is not None:
+        sensors_for_stove.append("board temperature")
     
     return sensors_for_stove
 

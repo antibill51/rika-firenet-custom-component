@@ -7,6 +7,9 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
+    CONF_CONNECTION_TYPE,
+    CONNECTION_TYPE_CLOUD,
+    CONF_HOST,
     CONF_DEFAULT_TEMPERATURE,
     CONF_DEFAULT_SCAN_INTERVAL,
     CONF_PENDING_TIMEOUT,
@@ -39,8 +42,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
-    connection_type = entry.data.get("connection_type", "cloud")
-    host = entry.data.get("host")
+    connection_type = entry.data.get(CONF_CONNECTION_TYPE, CONNECTION_TYPE_CLOUD)
+    host = entry.data.get(CONF_HOST)
     default_temperature = int(entry.options.get(CONF_DEFAULT_TEMPERATURE, 21))
     default_scan_interval = int(entry.options.get(CONF_DEFAULT_SCAN_INTERVAL, 15))
     pending_timeout = int(entry.options.get(CONF_PENDING_TIMEOUT, DEFAULT_PENDING_TIMEOUT))

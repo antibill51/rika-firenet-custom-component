@@ -18,3 +18,11 @@
 - **Phase 3 (Tests, Rechargement, Conformité HACS & Documentation)** :
   - Extension de `test_openfirenet_compat.py` (6 suites de tests unitaires et d'intégration couvrant : normalisation DOMO, cas limites manuel/hors-ligne, découverte locale, envoi de commandes REST, exclusion `ecoModePossible` en profil `V28`, instanciation de toutes les plateformes `climate`/`sensor`/`binary_sensor`/`switch`/`number`, `ConfigFlow`, cycle `async_setup_entry` / `async_unload_entry`, et validation `hacs.json` + `manifest.json` + 4 fichiers de traduction `fr`/`en`/`de`/`nl`).
   - Mise à jour de `README.md` et `info.md` pour documenter le mode **Open Firenet Local HTTP**.
+
+## 2026-10-30 - passe d'optimisation & factorisation supplémentaire
+- **Modèle** : Gemini 4 Argon (Low)
+- **Factorisation & Entités** :
+  - `custom_components/rika_firenet/__init__.py` : remplacement des chaînes littérales `"connection_type"` / `"cloud"` / `"host"` par les constantes `CONF_CONNECTION_TYPE`, `CONNECTION_TYPE_CLOUD` et `CONF_HOST` de `const.py`.
+  - `custom_components/rika_firenet/core.py` : ajout des méthodes `get_board_temperature()`, `get_outputAirFlapsTargetPosition()`, `get_bake_temperature()` et `set_bake_temperature()` sur `RikaFirenetStove` ; contextualisation du message de notification `_notify_command_timeout()` ("le pont local Open Firenet" vs "le cloud").
+  - `custom_components/rika_firenet/sensor.py` : exposition des capteurs diagnostics `board temperature` (°C) et `airflaps target` (%) lorsqu'ils sont disponibles sur le poêle, en parité avec `firenet_mqtt.h`.
+  - `test_openfirenet_compat.py` : ajout des assertions sur `board temperature`, `airflaps target`, `bakeTemperature` et `_notify_command_timeout()`.

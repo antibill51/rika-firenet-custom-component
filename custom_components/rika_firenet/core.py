@@ -583,6 +583,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                 },
             )
             # 2. Create persistent notification in HA UI
+            target_label = "le pont local Open Firenet" if self.is_local_mode() else "le cloud"
             self.hass.services.call(
                 "persistent_notification",
                 "create",
@@ -590,7 +591,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
                     "title": f"Rika Firenet - Commande non confirmée ({stove.get_name()})",
                     "message": (
                         f"Les réglages envoyés au poêle **{stove.get_name()}** (ID: {stove.get_id()}) "
-                        f"n'ont pas pu être confirmés par le cloud après {int(elapsed)} secondes "
+                        f"n'ont pas pu être confirmés par {target_label} après {int(elapsed)} secondes "
                         f"(délai configuré : {int(timeout)} s).\n\n"
                         "L'état précédent a été restauré pour garantir la cohérence."
                     ),
@@ -1300,6 +1301,45 @@ class RikaFirenetStove:
             except (ValueError, TypeError):
                 _LOGGER.warning(f"Invalid frostProtectionTemperature value for {self._id}: {value}")
                 return None
+        return None
+
+    def get_board_temperature(self):
+        """Return the main board temperature in °C."""
+        if self._state and 'sensors' in self._state and 'inputBoardTemperature' in self._state['sensors']:
+            value = self._state['sensors']['inputBoardTemperature']
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid inputBoardTemperature value for {self._id}: {value}")
+                return None
+        return None
+
+    def get_outputAirFlapsTargetPosition(self):
+        """Return the target air flaps position in %."""
+        if self._state and 'sensors' in self._state and 'outputAirFlapsTargetPosition' in self._state['sensors']:
+            value = self._state['sensors']['outputAirFlapsTargetPosition']
+            try:
+                return float(value) / 10.0
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid outputAirFlapsTargetPosition value for {self._id}: {value}")
+                return None
+        return None
+
+    def get_bake_temperature(self):
+        """Return the bake target temperature in °C (DOMO BACK)."""
+        if self._state and 'controls' in self._state and 'bakeTemperature' in self._state['controls']:
+            value = self._state['controls']['bakeTemperature']
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                _LOGGER.warning(f"Invalid bakeTemperature value for {self._id}: {value}")
+                return None
+        return None
+
+    def set_bake_temperature(self, temperature):
+        """Set the bake target temperature in °C (DOMO BACK)."""
+        self._set_control('bakeTemperature', int(temperature))
+
     def get_stove_type(self):
         """Return the stove model type (e.g. 'DOMO MultiAir')."""
         if self._state:
