@@ -1,23 +1,46 @@
-# Plan de Travail — rika-firenet-openfirenet-dev
+# Plan d'Exécution — rika-firenet-openfirenet-dev
 
-## Phase 1 : Audit et Cadrage
-- [x] Analyser l'état actuel de `custom_components/rika_firenet` et des adaptations OpenFirenet existantes.
-- [x] Exécuter et valider la suite de tests de compatibilité `test_openfirenet_compat.py`.
-- [x] Définir les écarts entre les payloads attendus par OpenFirenet et le composant actuel.
+Intégration hybride Open-Firenet / Rika Firenet Cloud basée sur [`antibill51/rika-firenet-custom-component`](https://github.com/antibill51/rika-firenet-custom-component) et l'architecture locale de [`open-firenet-ha`](https://github.com/openfirenet/open-firenet-ha).
 
-## Phase 2 : Intégration Locale OpenFirenet
-- [x] Adapter la couche de communication pour gérer la communication locale directe (HTTP/WebSocket/MQTT selon spécification OpenFirenet).
-- [x] Supporter le basculement local vs cloud (ou mode 100% autonome OpenFirenet).
-- [x] Valider la gestion des entités (températures, consigne, statut flamme, ventilation, mode de fonctionnement).
+## Objectifs Clés
+- **Source de base** : fork/adaptation propre de `antibill51/rika-firenet-custom-component`.
+- **Zéro MQTT pour l'intégration HA** : communication 100% directe en HTTP REST local avec la clé ESP32 OpenFirenet (`http://<ip_ou_mdns>/api/...`) pour éviter les doublons d'entités avec MQTT Discovery.
+- **Rétrocompatibilité Cloud intégrale** : fonctionnement Cloud Rika Firenet inchangé.
+- **Bascule Cloud <-> Clé ESP32 sans rupture** : permutation possible dans les options/reconfiguration du même poêle sans recréer ni renommer les entités existantes (`unique_id` stables).
+- **Entités spécifiques & Plages horaires** : gestion complète des schedules/plages de chauffe depuis HA et exposition des métriques étendues (températures, cartes, ventilateurs, diagnostiques).
+- **Pérennité firmware** : parsing et schémas modulaires pour absorber facilement les futures versions du firmware OpenFirenet ESP32.
 
-## Phase 3 : Tests & Validation
-- [x] Écrire les tests unitaires et d'intégration automatisés.
-- [x] Vérifier la rétrocompatibilité et l'absence de régression.
-- [x] Tester le rechargement et la conformité HACS.
-- [x] **Optimisations complémentaires** : alignement des `FeatureFlags` avec `open-firenet.ino::mqttDiscoveryStep` (exclusion de `ecoModePossible` sur profil `V28`, détection MultiAir via `controls_pos`, mapping de `board_temperature`, `air_flaps_target_percent`, `bakeTemperature` et créneaux `heatTime*`), exposition des capteurs diagnostics (`board temperature`, `airflaps target`), accesseurs `get_board_temperature()` / `get_outputAirFlapsTargetPosition()` / `get_bake_temperature()` / `set_bake_temperature()`, notification de timeout contextualisée local vs cloud, gestion explicite de `503 stove_not_ready`, et documentation (`README.md`, `info.md`).
-- [x] **Phase 4 : Gestion des plages horaires de chauffe (Schedule & Buttons)** :
-  - Portage de la logique de planification hebdomadaire (`schedule.py`) compatible OpenFirenet et Rika Cloud.
-  - Support de synchronisation directe depuis un helper HA (`schedule_entity`) via le bouton `schedule_copy`.
-  - Exposition des plateformes `button` (copier, envoyer, annuler) et `time` (réglage fin des plages par jour).
-  - Ajout du binary sensor diagnostique `schedule_pending` pour refléter les modifications en attente.
-  - Tests unitaires complets et validation sans régression.
+---
+
+## Phase 1 : Cadrage du Config Flow & Architecture Hybride
+- [ ] **1.1. Modèle de configuration & Options Flow** :
+  - Ajouter dans le Config Flow (`config_flow.py`) et l'Options Flow le choix de liaison : `Rika Firenet Cloud` ou `Clé locale OpenFirenet (ESP32)`.
+  - Permettre de modifier l'adresse IP / hôte mDNS de l'ESP32 et de rebasculer sur le cloud (ou inversement) sans modifier l'ID de l'appareil ni les `unique_id` des entités.
+  - Définition d'un schéma d'identification unifié basé sur le numéro de série / identifiant matériel du poêle.
+
+## Phase 2 : Couche de Transport & Client HTTP Local OpenFirenet
+- [ ] **2.1. Client HTTP REST Local Asynchrone (`openfirenet_client.py`)** :
+  - Implémenter le client aiohttp interrogeant directement l'API REST de l'ESP32 (`/api/status`, `/api/controls`, `/api/schedule`, `/api/reboot`).
+  - Gérer la résilience locale (timeouts, retry, gestion des états transitoires poêle débranché / `503 stove_not_ready`).
+  - Éviter rigoureusement toute dépendance ou connexion MQTT dans cette intégration.
+- [ ] **2.2. Normalisation des données & Rétrocompatibilité Rika Core** :
+  - Normaliser le dictionnaire de statut local OpenFirenet pour qu'il alimente le même `RikaFirenetCoordinator` / objets d'état que le cloud.
+  - Préserver l'ensemble des entités standard (`climate`, `sensor`, `binary_sensor`, `switch`, `number`).
+
+## Phase 3 : Gestion Avancée des Plages Horaires & Entités Étendues
+- [ ] **3.1. Gestion des plages horaires de chauffe depuis Home Assistant** :
+  - Implémenter la lecture et l'écriture des créneaux de chauffe hebdomadaires (`schedule.py` / `/api/schedule`).
+  - Exposer des entités `time` / boutons de synchronisation ou service de programmation sans dépendre du cloud Rika.
+- [ ] **3.2. Entités spécifiques OpenFirenet** :
+  - Exposer les métriques exclusives du firmware (température de carte mère, statut convection/air flaps réels, compteurs détaillés) sous forme d'entités HA diagnostiques.
+
+## Phase 4 : Modularité & Pérennité Firmware
+- [ ] **4.1. Adaptabilité aux évolutions firmware ESP32** :
+  - Isoler le mapping des registres et payloads dans un module de spécification de versions (`firmware_specs.py`).
+  - Tolérance aux champs manquants ou nouveaux attributs renvoyés par l'ESP32.
+
+## Phase 5 : Tests Automatisés & Validation
+- [ ] **5.1. Suite de tests unitaires et mocks** :
+  - Écrire les tests simulant l'API REST locale OpenFirenet et le Cloud Rika.
+  - Vérifier la non-régression du Config Flow, de la bascule de source et de la stabilité des `unique_id`.
+  - Vérification de conformité HACS et rechargement sans redémarrage HA.
