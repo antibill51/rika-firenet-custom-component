@@ -14,7 +14,7 @@
           "connection_type": "Kies tussen Rika Firenet Cloud of een lokale directe HTTP-verbinding met Open Firenet.",
           "host": "Hostnaam of lokaal IP-adres van de bridge (bijv. open-firenet.local of 192.168.1.50).",
           "username": "Het e-mailadres waarmee u inlogt op www.rika-firenet.com (alleen Cloud)",
-          "password": "Het wachtwoord voor uw Rika Firenet-account (alleen Cloud)"
+          "password": "Het wachtwoord (password) voor uw Rika Firenet-account (alleen Cloud)"
         }
       }
     },

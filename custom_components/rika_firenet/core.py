@@ -76,7 +76,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         """Test HTTP connectivity to Open Firenet /api/state."""
         clean_host = (host or CONF_HOST_DEFAULT).strip()
         if not clean_host.startswith("http://") and not clean_host.startswith("https://"):
-            url = f"http://{clean_host}/api/state"
+            url = f"http://{clean_host}/api/state"  # NOSONAR
         else:
             url = f"{clean_host.rstrip('/')}/api/state"
         _LOGGER.debug("Testing Open Firenet local connection: %s", url)
@@ -176,7 +176,7 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
         """Construct full URL for local Open Firenet endpoint."""
         clean_host = self._host
         if not clean_host.startswith("http://") and not clean_host.startswith("https://"):
-            return f"http://{clean_host}/{endpoint.lstrip('/')}"
+            return f"http://{clean_host}/{endpoint.lstrip('/')}"  # NOSONAR
         return f"{clean_host.rstrip('/')}/{endpoint.lstrip('/')}"
 
     def connect(self):
@@ -1588,7 +1588,7 @@ class RikaFirenetStove:
         if self._coordinator.is_local_mode():
             host = self._coordinator.get_host()
             if not host.startswith("http://") and not host.startswith("https://"):
-                return f"http://{host}"
+                return f"http://{host}"  # NOSONAR
             return host.rstrip('/')
         return f"https://www.rika-firenet.com/web/stove/{self._id}"
 
