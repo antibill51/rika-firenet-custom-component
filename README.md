@@ -17,6 +17,7 @@ Custom component for Home Assistant to integrate and control RIKA pellet and com
   - [Switching Cloud / Local (Seamless Migration)](#switching-cloud--local-seamless-migration)
   - [Events & Notifications](#events--notifications)
   - [Lovelace Dashboard Examples](#lovelace-dashboard-examples)
+  - [Acknowledgments & Credits](#acknowledgments--credits)
 - [🇫🇷 Documentation en Français](#-documentation-en-français)
   - [Présentation & Philosophie](#présentation--philosophie)
   - [Fonctionnalités Clés](#fonctionnalités-clés)
@@ -25,6 +26,7 @@ Custom component for Home Assistant to integrate and control RIKA pellet and com
   - [Basculer Cloud / Local (Transition transparente)](#basculer-cloud--local-transition-transparente)
   - [Événements et Notifications](#événements-et-notifications)
   - [Exemples de Cartes Lovelace](#exemples-de-cartes-lovelace)
+  - [Remerciements & Crédits](#remerciements--crédits)
 
 ---
 
@@ -34,7 +36,7 @@ Custom component for Home Assistant to integrate and control RIKA pellet and com
 
 This integration provides a seamless bridge between your RIKA stove and Home Assistant. It supports two operating modes:
 1. **Rika Firenet Cloud**: Connects to the official cloud portal ([rika-firenet.com](https://www.rika-firenet.com)) with your user account.
-2. **Open Firenet Local HTTP**: Connects directly and 100% locally to an [Open Firenet](https://github.com/openfirenet/open-firenet-ha) ESP32 bridge over your local network using direct HTTP REST calls (`/api/state` and `/api/controls`), without any cloud dependency and without MQTT entity duplicates.
+2. **Open Firenet Local HTTP**: Connects directly and 100% locally to an [Open Firenet](https://github.com/openfirenet/open-firenet) ESP32 bridge over your local network using direct HTTP REST calls (`/api/state` and `/api/controls`), without any cloud dependency and without MQTT entity duplicates.
 
 > [!IMPORTANT]
 > **Safety Disclaimer**: This integration does not alter the underlying stove firmware, safety limits, or internal mechanics. All operating modes, power levels, convection fan steps, and combustion cycles (ignition, heating, cleaning, burn-off, shutdown) follow the stove's native electronic board specifications.
@@ -198,6 +200,10 @@ card:
             name: Normal
 ```
 
+## Acknowledgments & Credits
+
+Special thanks to the author and contributors of the **[Open Firenet](https://github.com/openfirenet/open-firenet)** project for developing the ESP32 hardware/firmware bridge and local REST API, making 100% local, cloud-free control of RIKA stoves possible in Home Assistant.
+
 ---
 
 # 🇫🇷 Documentation en Français
@@ -206,7 +212,7 @@ card:
 
 Cette intégration assure une passerelle complète entre votre poêle à granulés/mixte RIKA et Home Assistant. Elle prend en charge deux modes d'exploitation :
 1. **Rika Firenet Cloud** : Connexion au portail officiel ([rika-firenet.com](https://www.rika-firenet.com)) avec vos identifiants utilisateur.
-2. **Open Firenet Local HTTP** : Connexion 100% locale à une passerelle ESP32 [Open Firenet](https://github.com/openfirenet/open-firenet-ha) via son API REST HTTP locale (`/api/state` et `/api/controls`), sans dépendance envers le cloud Rika et sans doublon d'entités MQTT.
+2. **Open Firenet Local HTTP** : Connexion 100% locale à une passerelle ESP32 [Open Firenet](https://github.com/openfirenet/open-firenet) via son API REST HTTP locale (`/api/state` et `/api/controls`), sans dépendance envers le cloud Rika et sans doublon d'entités MQTT.
 
 > [!IMPORTANT]
 > **Avertissement & Sécurité** : Cette intégration ne modifie ni les sécurités matérielles, ni les seuils critiques du poêle. Les modes de fonctionnement, puissances, vitesses de convection et cycles de combustion (allumage, régulation, extinction, nettoyage) demeurent strictement régis par la carte électronique d'origine Rika.
@@ -399,3 +405,7 @@ card:
 
 Les contributions, signalements de bugs et suggestions sont les bienvenus via les [Issues GitHub](https://github.com/antibill51/rika-firenet-custom-component/issues) et [Pull Requests](https://github.com/antibill51/rika-firenet-custom-component/pulls).
 Veuillez vous référer au fichier [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Remerciements & Crédits
+
+Un grand merci à l'auteur et aux contributeurs du projet **[Open Firenet](https://github.com/openfirenet/open-firenet)** pour la conception et le développement de la passerelle matérielle/logicielle ESP32 et de son API REST locale, rendant possible le pilotage 100% local et indépendant du cloud de nos poêles RIKA sous Home Assistant.

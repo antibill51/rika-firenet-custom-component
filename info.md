@@ -173,6 +173,7 @@ Supports both **Rika Firenet Cloud** (`rika-firenet.com`) and **Open Firenet Loc
 ```
 <!---->
 ***
+Special thanks to the **[Open Firenet](https://github.com/openfirenet/open-firenet)** project for enabling local ESP32 control of Rika stoves.
 Si besoin, les échanges en français sont également acceptés.
 [rika_firenet]: https://github.com/antibill51/rika-firenet-custom-component
 [commits]: https://github.com/antibill51/rika-firenet-custom-component/commits/main
