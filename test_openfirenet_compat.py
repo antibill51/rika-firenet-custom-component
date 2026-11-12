@@ -182,6 +182,15 @@ class ConfigFlow:
         return {"type": "create_entry", "title": title, "data": data}
     def async_show_form(self, step_id, data_schema, errors=None):
         return {"type": "form", "step_id": step_id, "data_schema": data_schema, "errors": errors or {}}
+    def async_show_menu(self, step_id, menu_options):
+        return {"type": "menu", "step_id": step_id, "menu_options": menu_options}
+    def async_abort(self, reason):
+        return {"type": "abort", "reason": reason}
+    async def async_set_unique_id(self, unique_id, raise_on_progress=True):
+        self.unique_id = unique_id
+        return unique_id
+    def _abort_if_unique_id_configured(self, updates=None, reload_on_update=True, error="already_configured"):
+        pass
 
 class OptionsFlow:
     pass
@@ -523,27 +532,54 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
 
         flow = RikaFirenetFlowHandler()
         flow.hass = MagicMock()
+        flow.hass.config_entries.async_entries.return_value = []
 
         async def run_flow():
+            # Menu de sélection initial
+            res_menu = await flow.async_step_user()
+            self.assertEqual(res_menu["type"], "menu")
+            self.assertIn("local", res_menu["menu_options"])
+            self.assertIn("cloud", res_menu["menu_options"])
+
             # Test connexion locale réussie
             with patch.object(RikaFirenetFlowHandler, "_test_local_connection", return_value=True):
-                res = await flow.async_step_user({
-                    "connection_type": CONNECTION_TYPE_LOCAL,
+                res = await flow.async_step_local({
                     "host": "192.168.1.50",
                 })
                 self.assertEqual(res["type"], "create_entry")
                 self.assertEqual(res["title"], "Open Firenet (192.168.1.50)")
+                self.assertEqual(flow.unique_id, "local_192.168.1.50")
 
             # Test connexion locale échouée
+            flow_err = RikaFirenetFlowHandler()
+            flow_err.hass = MagicMock()
             with patch.object(RikaFirenetFlowHandler, "_test_local_connection", return_value=False):
-                res_err = await flow.async_step_user({
-                    "connection_type": CONNECTION_TYPE_LOCAL,
+                res_err = await flow_err.async_step_local({
                     "host": "192.168.1.99",
                 })
                 self.assertEqual(res_err["type"], "form")
                 self.assertEqual(res_err["errors"]["base"], "cannot_connect")
 
-            # Test setup & unload entry
+            # Test multi-instances autorisé : ajout d'une instance Cloud alors que le Local existe
+            flow_cloud = RikaFirenetFlowHandler()
+            flow_cloud.hass = MagicMock()
+            flow_cloud.hass.config_entries.async_entries.return_value = [
+                MagicMock(entry_id="local_entry", unique_id="local_192.168.1.50")
+            ]
+            # async_step_user doit toujours afficher le menu (plus de blocage single_instance_allowed)
+            res_menu_multi = await flow_cloud.async_step_user()
+            self.assertEqual(res_menu_multi["type"], "menu")
+
+            with patch.object(RikaFirenetFlowHandler, "_test_credentials", return_value=True):
+                res_cloud = await flow_cloud.async_step_cloud({
+                    "username": "user@test.com",
+                    "password": "secret_password",
+                })
+                self.assertEqual(res_cloud["type"], "create_entry")
+                self.assertEqual(res_cloud["title"], "user@test.com")
+                self.assertEqual(flow_cloud.unique_id, "user@test.com")
+
+            # Test setup & unload entry multi-instances
             hass = MagicMock()
             hass.data = {}
             async def async_exec(func, *args):
@@ -556,19 +592,37 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
             hass.config_entries.async_forward_entry_setups = async_fwd
             hass.config_entries.async_unload_platforms = async_unl
 
-            entry = MagicMock()
-            entry.entry_id = "entry_local_1"
-            entry.data = {"connection_type": CONNECTION_TYPE_LOCAL, "host": "192.168.1.50"}
-            entry.options = {}
+            entry_local = MagicMock()
+            entry_local.entry_id = "entry_local_1"
+            entry_local.unique_id = None
+            entry_local.data = {"connection_type": CONNECTION_TYPE_LOCAL, "host": "192.168.1.50"}
+            entry_local.options = {}
+
+            entry_cloud = MagicMock()
+            entry_cloud.entry_id = "entry_cloud_2"
+            entry_cloud.unique_id = None
+            entry_cloud.data = {"connection_type": CONNECTION_TYPE_CLOUD, "username": "user@test.com", "password": "pwd"}
+            entry_cloud.options = {}
 
             with patch.object(RikaFirenetCoordinator, "setup", return_value=None), \
                  patch.object(RikaFirenetCoordinator, "update", return_value=None):
-                ok = await async_setup_entry(hass, entry)
-                self.assertTrue(ok)
+                ok1 = await async_setup_entry(hass, entry_local)
+                self.assertTrue(ok1)
                 self.assertIn("entry_local_1", hass.data["rika_firenet"])
-                unloaded = await async_unload_entry(hass, entry)
+
+                ok2 = await async_setup_entry(hass, entry_cloud)
+                self.assertTrue(ok2)
+                self.assertIn("entry_cloud_2", hass.data["rika_firenet"])
+
+                # Déchargement d'une des deux instances sans affecter l'autre
+                unloaded = await async_unload_entry(hass, entry_local)
                 self.assertTrue(unloaded)
                 self.assertNotIn("entry_local_1", hass.data["rika_firenet"])
+                self.assertIn("entry_cloud_2", hass.data["rika_firenet"])
+
+                unloaded_cloud = await async_unload_entry(hass, entry_cloud)
+                self.assertTrue(unloaded_cloud)
+                self.assertNotIn("entry_cloud_2", hass.data["rika_firenet"])
 
         asyncio.run(run_flow())
 
@@ -589,9 +643,12 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         for lang in ("fr.json", "en.json"):
             with open(os.path.join(trans_dir, lang), "r") as f:
                 tr = json.load(f)
-            self.assertIn("connection_type", tr["config"]["step"]["user"]["data"])
-            self.assertIn("host", tr["config"]["step"]["user"]["data"])
+            self.assertIn("cloud", tr["config"]["step"]["user"]["menu_options"])
+            self.assertIn("local", tr["config"]["step"]["user"]["menu_options"])
+            self.assertIn("host", tr["config"]["step"]["local"]["data"])
+            self.assertIn("username", tr["config"]["step"]["cloud"]["data"])
             self.assertIn("cannot_connect", tr["config"]["error"])
+            self.assertIn("already_configured", tr["config"]["abort"])
 
     def test_schedule_and_buttons(self):
         """Tester le module schedule, l'encodage/décodage, la conversion helper HA et les boutons."""

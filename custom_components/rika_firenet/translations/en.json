@@ -67,11 +67,16 @@
       "cannot_connect": "Unable to connect to Open Firenet bridge."
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed.",
+      "already_configured": "Device or account is already configured.",
       "reconfigure_successful": "Connection reconfigured successfully."
     }
   },
   "options": {
+    "error": {
+      "auth": "Incorrect username or password.",
+      "cannot_connect": "Unable to connect to Open Firenet bridge.",
+      "already_configured": "This account or bridge is already configured in another instance."
+    },
     "step": {
       "init": {
         "title": "Rika Firenet Options",

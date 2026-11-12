@@ -9,6 +9,7 @@ from homeassistant.helpers import config_validation as cv, device_registry as dr
 from .const import (
     CONF_CONNECTION_TYPE,
     CONNECTION_TYPE_CLOUD,
+    CONNECTION_TYPE_LOCAL,
     CONF_HOST,
     CONF_DEFAULT_TEMPERATURE,
     CONF_DEFAULT_SCAN_INTERVAL,
@@ -47,6 +48,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     default_temperature = int(entry.options.get(CONF_DEFAULT_TEMPERATURE, 21))
     default_scan_interval = int(entry.options.get(CONF_DEFAULT_SCAN_INTERVAL, 15))
     pending_timeout = int(entry.options.get(CONF_PENDING_TIMEOUT, DEFAULT_PENDING_TIMEOUT))
+
+    if not entry.unique_id:
+        if connection_type == CONNECTION_TYPE_LOCAL and host:
+            hass.config_entries.async_update_entry(entry, unique_id=f"local_{host.lower()}")
+        elif username:
+            hass.config_entries.async_update_entry(entry, unique_id=username.lower())
 
     coordinator = RikaFirenetCoordinator(
         hass,

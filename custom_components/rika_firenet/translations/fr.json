@@ -67,11 +67,16 @@
       "cannot_connect": "Impossible de contacter le pont Open Firenet local."
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée.",
+      "already_configured": "Ce compte ou cette passerelle est déjà configuré(e).",
       "reconfigure_successful": "La reconfiguration de la connexion a réussi."
     }
   },
   "options": {
+    "error": {
+      "auth": "Identifiant ou mot de passe incorrect.",
+      "cannot_connect": "Impossible de contacter le pont Open Firenet local.",
+      "already_configured": "Ce compte ou cette passerelle est déjà configuré(e) dans une autre instance."
+    },
     "step": {
       "init": {
         "title": "Options Rika Firenet",

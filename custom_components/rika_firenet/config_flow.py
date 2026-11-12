@@ -35,9 +35,6 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user: menu to select connection mode."""
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
-
         return self.async_show_menu(
             step_id="user",
             menu_options=["cloud", "local"],
@@ -49,6 +46,9 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             username = user_input.get(CONF_USERNAME, "").strip()
             password = user_input.get(CONF_PASSWORD, "")
+            await self.async_set_unique_id(username.lower())
+            self._abort_if_unique_id_configured()
+
             valid = await self._test_credentials(username, password)
             if valid:
                 data = {
@@ -78,6 +78,9 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
         if user_input is not None:
             host = user_input.get(CONF_HOST, CONF_HOST_DEFAULT).strip()
+            await self.async_set_unique_id(f"local_{host.lower()}")
+            self._abort_if_unique_id_configured()
+
             valid = await self._test_local_connection(host)
             if valid:
                 data = {
@@ -115,6 +118,9 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             username = user_input.get(CONF_USERNAME, "").strip()
             password = user_input.get(CONF_PASSWORD, "")
+            await self.async_set_unique_id(username.lower())
+            self._abort_if_unique_id_configured()
+
             valid = await self._test_credentials(username, password)
             if valid:
                 new_data = dict(entry.data)
@@ -124,6 +130,7 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_update_reload_and_abort(
                     entry,
                     title=username,
+                    unique_id=username.lower(),
                     data=new_data,
                 )
             self._errors["base"] = "auth"
@@ -149,6 +156,9 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             host = user_input.get(CONF_HOST, CONF_HOST_DEFAULT).strip()
+            await self.async_set_unique_id(f"local_{host.lower()}")
+            self._abort_if_unique_id_configured()
+
             valid = await self._test_local_connection(host)
             if valid:
                 new_data = dict(entry.data)
@@ -157,6 +167,7 @@ class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_update_reload_and_abort(
                     entry,
                     title=f"Open Firenet ({host})",
+                    unique_id=f"local_{host.lower()}",
                     data=new_data,
                 )
             self._errors["base"] = "cannot_connect"
@@ -266,19 +277,26 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             username = user_input.get(CONF_USERNAME, "").strip()
             password = user_input.get(CONF_PASSWORD, "")
-            valid = await self._test_credentials(username, password)
-            if valid:
-                entry_data[CONF_CONNECTION_TYPE] = CONNECTION_TYPE_CLOUD
-                entry_data[CONF_USERNAME] = username
-                entry_data[CONF_PASSWORD] = password
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    title=username,
-                    data=entry_data,
-                )
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_create_entry(title="", data=self.config_entry.options)
-            self._errors["base"] = "auth"
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id != self.config_entry.entry_id:
+                    if entry.data.get(CONF_CONNECTION_TYPE) == CONNECTION_TYPE_CLOUD and (entry.data.get(CONF_USERNAME) or "").lower() == username.lower():
+                        self._errors["base"] = "already_configured"
+                        break
+            if not self._errors:
+                valid = await self._test_credentials(username, password)
+                if valid:
+                    entry_data[CONF_CONNECTION_TYPE] = CONNECTION_TYPE_CLOUD
+                    entry_data[CONF_USERNAME] = username
+                    entry_data[CONF_PASSWORD] = password
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        title=username,
+                        unique_id=username.lower(),
+                        data=entry_data,
+                    )
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                    return self.async_create_entry(title="", data=self.config_entry.options)
+                self._errors["base"] = "auth"
 
         default_user = (user_input or {}).get(CONF_USERNAME) or entry_data.get(CONF_USERNAME, "") or ""
         default_pass = (user_input or {}).get(CONF_PASSWORD) or entry_data.get(CONF_PASSWORD, "") or ""
@@ -301,18 +319,25 @@ class RikaFirenetOptionsFlowHandler(config_entries.OptionsFlow):
 
         if user_input is not None:
             host = user_input.get(CONF_HOST, CONF_HOST_DEFAULT).strip()
-            valid = await self._test_local_connection(host)
-            if valid:
-                entry_data[CONF_CONNECTION_TYPE] = CONNECTION_TYPE_LOCAL
-                entry_data[CONF_HOST] = host
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    title=f"Open Firenet ({host})",
-                    data=entry_data,
-                )
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-                return self.async_create_entry(title="", data=self.config_entry.options)
-            self._errors["base"] = "cannot_connect"
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id != self.config_entry.entry_id:
+                    if entry.data.get(CONF_CONNECTION_TYPE) == CONNECTION_TYPE_LOCAL and (entry.data.get(CONF_HOST) or "").lower() == host.lower():
+                        self._errors["base"] = "already_configured"
+                        break
+            if not self._errors:
+                valid = await self._test_local_connection(host)
+                if valid:
+                    entry_data[CONF_CONNECTION_TYPE] = CONNECTION_TYPE_LOCAL
+                    entry_data[CONF_HOST] = host
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        title=f"Open Firenet ({host})",
+                        unique_id=f"local_{host.lower()}",
+                        data=entry_data,
+                    )
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                    return self.async_create_entry(title="", data=self.config_entry.options)
+                self._errors["base"] = "cannot_connect"
 
         default_host = (user_input or {}).get(CONF_HOST) or entry_data.get(CONF_HOST, CONF_HOST_DEFAULT) or CONF_HOST_DEFAULT
         schema = vol.Schema(

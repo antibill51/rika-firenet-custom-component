@@ -23,10 +23,15 @@
       "cannot_connect": "Verbindung zur Open Firenet Bridge fehlgeschlagen."
     },
     "abort": {
-      "single_instance_allowed": "Es ist nur eine einzelne Instanz der Integration erlaubt."
+      "already_configured": "Konto oder Gateway ist bereits konfiguriert."
     }
   },
   "options": {
+    "error": {
+      "auth": "Benutzername oder Passwort ist falsch.",
+      "cannot_connect": "Verbindung zur Open Firenet Bridge fehlgeschlagen.",
+      "already_configured": "Dieses Konto oder dieses Gateway ist bereits in einer anderen Instanz konfiguriert."
+    },
     "step": {
       "init": {
         "title": "Rika Firenet Optionen",

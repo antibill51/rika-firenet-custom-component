@@ -23,10 +23,15 @@
       "cannot_connect": "Kan geen verbinding maken met de Open Firenet bridge."
     },
     "abort": {
-      "single_instance_allowed": "Slechts één configuratie van Rika Firenet is toegestaan."
+      "already_configured": "Account of gateway is al geconfigureerd."
     }
   },
   "options": {
+    "error": {
+      "auth": "Gebruikersnaam of wachtwoord is onjuist.",
+      "cannot_connect": "Kan geen verbinding maken met de Open Firenet bridge.",
+      "already_configured": "Dit account of deze gateway is al geconfigureerd in een andere instantie."
+    },
     "step": {
       "init": {
         "title": "Rika Firenet Opties",
