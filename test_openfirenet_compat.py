@@ -274,6 +274,13 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertIn("controls", norm)
         self.assertIn("stoveFeatures", norm)
 
+        # Vérifications stoveFeatures (DOMO purement pellets : pas d'airFlaps, pas d'ecoModePossible, pas de logRuntime)
+        stove_features = norm["stoveFeatures"]
+        self.assertFalse(stove_features.get("airFlaps", False))
+        self.assertFalse(stove_features.get("ecoModePossible", False))
+        self.assertFalse(stove_features.get("logRuntime", False))
+        self.assertTrue(stove_features.get("multiAir1", False))
+
         # Vérifications sensors
         sensors = norm["sensors"]
         self.assertEqual(sensors.get("inputRoomTemperature"), "22.5")
@@ -476,18 +483,31 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertEqual(clim.hvac_mode, "off")
         self.assertIn("http://192.168.1.50", clim.device_info["configuration_url"])
 
-        # Sensors
+        # Sensors DOMO (ni airflaps, ni logs sur un poêle à granulés purs)
         sensor_names = get_sensor_device_list(stove)
         self.assertIn("stove consumption", sensor_names)
         self.assertIn("board temperature", sensor_names)
+        self.assertNotIn("airflaps", sensor_names)
+        self.assertNotIn("airflaps target", sensor_names)
+        self.assertNotIn("stove runtime logs", sensor_names)
         for s_name in sensor_names:
             s_ent = RikaFirenetStoveSensor(entry, stove, coord, s_name)
             _ = s_ent.native_value
 
-        # Test airflaps & airflaps target
+        # Switches DOMO (pas d'eco mode sur poêle granulés purs)
+        switch_names = get_switch_device_list(stove)
+        self.assertIn("on off", switch_names)
+        self.assertIn("convection fan1", switch_names)
+        self.assertNotIn("eco mode", switch_names)
+
+        # Test poêle combiné (ex. INDUO) : airflaps, airflaps target et eco mode présents
         af_state = dict(self.fixture_state)
+        af_state["stove"] = dict(self.fixture_state["stove"], model=1, model_name="INDUO")
+        af_state["controls"] = dict(self.fixture_state["controls"], eco_mode_possible=True)
         af_state["sensors"] = dict(self.fixture_state["sensors"], air_flaps_percent=12.5, air_flaps_target_percent=15.0)
         norm_af = coord._normalize_openfirenet_state(af_state, "stove_af")
+        self.assertTrue(norm_af["stoveFeatures"].get("airFlaps"))
+        self.assertTrue(norm_af["stoveFeatures"].get("ecoModePossible"))
         stove_af = RikaFirenetStove(coord, "stove_af", "Rika AF")
         stove_af.update_internal_state(norm_af)
         af_sensors = get_sensor_device_list(stove_af)
@@ -495,6 +515,8 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
         self.assertIn("airflaps target", af_sensors)
         self.assertEqual(stove_af.get_outputAirFlaps(), 12.5)
         self.assertEqual(stove_af.get_outputAirFlapsTargetPosition(), 15.0)
+        af_switches = get_switch_device_list(stove_af)
+        self.assertIn("eco mode", af_switches)
 
         # Test notification de timeout local vs cloud
         coord._notify_command_timeout(stove, 305, 300)

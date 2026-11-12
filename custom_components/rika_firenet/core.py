@@ -548,17 +548,72 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
 
         controls_dict["revision"] = int(raw_data.get("revision", 0))
 
-        # 3. Stove features (aligné avec open-firenet.ino::mqttDiscoveryStep)
+        # 3. Stove features (aligné avec la matrice de fonctionnalités Rika)
+        # Modèles combinés granulés/bûches avec volets d'air motorisés et mode éco : INDUO (1), INDUO II (15), PARO (17)
+        combined_stove_models = {1, 15, 17}
+        combined_stove_names = {"INDUO", "INDUO II", "PARO"}
+
+        model_id = of_stove.get("model")
+        if model_id is None:
+            model_id = raw_s.get("model")
+        if model_id is None:
+            model_id = raw_data.get("model")
+        try:
+            model_id_int = int(model_id) if model_id is not None else None
+        except (ValueError, TypeError):
+            model_id_int = None
+
+        model_name = of_stove.get("model_name") or raw_data.get("model_name") or ""
+        model_name_upper = str(model_name).upper().strip()
+
+        is_combined = None
+        if model_id_int is not None and model_id_int > 0:
+            is_combined = model_id_int in combined_stove_models
+        elif model_name_upper:
+            is_combined = any(c_name in model_name_upper for c_name in combined_stove_names)
+
         version_frame = str(raw_data.get("version_frame", "")).upper()
-        if (
-            of_sensors.get("air_flaps_percent") is not None
-            or of_sensors.get("air_flaps_target_percent") is not None
-            or (raw_s.get("airFlaps") or 0) > 0
-            or (raw_s.get("airFlapsTarget") or 0) > 0
-        ):
-            stove_features["airFlaps"] = True
-        if (of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1) and version_frame != "V28":
-            stove_features["ecoModePossible"] = True
+
+        # Air flaps : réservé aux modèles hybrides (ou indéterminés avec mesure positive)
+        if is_combined is True:
+            if (
+                of_sensors.get("air_flaps_percent") is not None
+                or of_sensors.get("air_flaps_target_percent") is not None
+                or (raw_s.get("airFlaps") or 0) > 0
+                or (raw_s.get("airFlapsTarget") or 0) > 0
+            ):
+                stove_features["airFlaps"] = True
+            else:
+                stove_features["airFlaps"] = False
+        elif is_combined is False:
+            # Poêle à granulés purs (DOMO, etc.) : jamais de volets motorisés
+            stove_features["airFlaps"] = False
+        else:
+            # Modèle indéterminé : seulement si une valeur > 0 est rapportée
+            af_val = of_sensors.get("air_flaps_percent")
+            af_tgt = of_sensors.get("air_flaps_target_percent")
+            has_af = (
+                (af_val is not None and float(af_val) > 0)
+                or (af_tgt is not None and float(af_tgt) > 0)
+                or (raw_s.get("airFlaps") or 0) > 0
+                or (raw_s.get("airFlapsTarget") or 0) > 0
+            )
+            stove_features["airFlaps"] = bool(has_af)
+
+        # Eco mode bûches : réservé aux modèles hybrides hors profil V28
+        if is_combined is True and version_frame != "V28":
+            stove_features["ecoModePossible"] = bool(
+                of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1
+            )
+        elif is_combined is False:
+            stove_features["ecoModePossible"] = False
+        elif is_combined is None and version_frame != "V28":
+            stove_features["ecoModePossible"] = bool(
+                of_controls.get("eco_mode_possible") is True or raw_s.get("ecoModePossible") == 1
+            )
+        else:
+            stove_features["ecoModePossible"] = False
+
         if (
             "convection_fan1_active" in of_controls
             or "convection_fan1_level" in of_controls
@@ -571,8 +626,15 @@ class RikaFirenetCoordinator(DataUpdateCoordinator):
             or (isinstance(ctrl_pos, list) and len(ctrl_pos) > 26)
         ):
             stove_features["multiAir2"] = True
-        if (raw_s.get("logRuntime") or 0) > 0 or (of_sensors.get("log_runtime_hours") or 0) > 0:
+
+        # Log runtime : réservé aux modèles hybrides
+        if is_combined is True:
             stove_features["logRuntime"] = True
+        elif is_combined is False:
+            stove_features["logRuntime"] = False
+        else:
+            if (raw_s.get("logRuntime") or 0) > 0 or (of_sensors.get("log_runtime_hours") or 0) > 0:
+                stove_features["logRuntime"] = True
 
         model_name = of_stove.get("model_name") or raw_data.get("model_name")
         is_linked = bool(raw_data.get("version_ack", True)) and bool(device_meta.get("connected", True))
