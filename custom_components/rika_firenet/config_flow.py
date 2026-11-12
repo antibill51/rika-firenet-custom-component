@@ -26,7 +26,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class RikaFirenetFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     def __init__(self):
         """Initialize."""
