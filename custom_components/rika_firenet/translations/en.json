@@ -3,34 +3,62 @@
     "step": {
       "user": {
         "title": "Rika Firenet Connection",
-        "description": "Configure the connection with your Rika Firenet account to control your stove.",
-        "data": {
-          "connection_type": "Connection type",
-          "host": "Open Firenet Host / IP",
-          "username": "Username (Email)",
-          "password": "Password"
-        },
-        "data_description": {
-          "connection_type": "Choose between Rika Firenet Cloud (rika-firenet.com) or local direct HTTP with Open Firenet.",
-          "host": "Bridge hostname or local IP address for Open Firenet (e.g., open-firenet.local or 192.168.1.50).",
-          "username": "The email address used to log in at www.rika-firenet.com (Cloud only)",
-          "password": "The password for your Rika Firenet account (Cloud only)"
+        "description": "Choose connection mode for your Rika stove:",
+        "menu_options": {
+          "cloud": "Rika Firenet Cloud (official)",
+          "local": "Open Firenet Local (direct HTTP bridge)"
         }
       },
-      "reconfigure_confirm": {
-        "title": "Reconfigure Rika Firenet Connection",
-        "description": "Switch between Rika Cloud and Open Firenet Local HTTP, or update your host/credentials.",
+      "cloud": {
+        "title": "Rika Cloud Connection",
+        "description": "Enter your www.rika-firenet.com account credentials:",
         "data": {
-          "connection_type": "Connection type",
-          "host": "Open Firenet Host / IP",
           "username": "Username (Email)",
           "password": "Password"
         },
         "data_description": {
-          "connection_type": "Choose between Rika Firenet Cloud (rika-firenet.com) or local direct HTTP with Open Firenet.",
-          "host": "Bridge hostname or local IP address for Open Firenet (e.g., open-firenet.local or 192.168.1.50).",
-          "username": "The email address used to log in at www.rika-firenet.com (Cloud only)",
-          "password": "The password for your Rika Firenet account (Cloud only)"
+          "username": "The email address used to log in at www.rika-firenet.com",
+          "password": "The password for your Rika Firenet account"
+        }
+      },
+      "local": {
+        "title": "Open Firenet Local Connection",
+        "description": "Enter your local Open Firenet bridge address:",
+        "data": {
+          "host": "Host or IP address"
+        },
+        "data_description": {
+          "host": "Local hostname or IP address (e.g., open-firenet.local or 192.168.1.50)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Rika Firenet Connection",
+        "description": "Choose connection mode to switch to:",
+        "menu_options": {
+          "reconfigure_cloud": "Switch to Rika Cloud (credentials)",
+          "reconfigure_local": "Switch to Open Firenet Local (HTTP bridge / IP)"
+        }
+      },
+      "reconfigure_cloud": {
+        "title": "Reconfigure to Rika Cloud",
+        "description": "Enter or update your www.rika-firenet.com account credentials:",
+        "data": {
+          "username": "Username (Email)",
+          "password": "Password"
+        },
+        "data_description": {
+          "username": "The email address used to log in at www.rika-firenet.com",
+          "password": "The password for your Rika Firenet account"
+        }
+      },
+      "reconfigure_local": {
+        "title": "Reconfigure to Open Firenet Local",
+        "description": "Enter or update your Open Firenet bridge address:",
+        "data": {
+          "host": "Host or IP address"
+        },
+        "data_description": {
+          "host": "Local hostname or IP address (e.g., open-firenet.local or 192.168.1.50)"
         }
       }
     },
@@ -39,14 +67,24 @@
       "cannot_connect": "Unable to connect to Open Firenet bridge."
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed."
+      "single_instance_allowed": "Only a single configuration of Rika Firenet is allowed.",
+      "reconfigure_successful": "Connection reconfigured successfully."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Rika Firenet Options",
-        "description": "Adjust operational settings and choose which entity types to expose.",
+        "description": "Choose section to configure:",
+        "menu_options": {
+          "general": "General settings (thermostat, polling interval, entities)",
+          "cloud": "Switch to Rika Cloud (credentials)",
+          "local": "Switch to Open Firenet Local (HTTP bridge / IP)"
+        }
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Adjust operational settings and choose exposed entity types.",
         "data": {
           "defaultTemperature": "Default temperature (°C)",
           "defaultScanInterval": "Scan interval (seconds)",
@@ -74,34 +112,26 @@
           "time": "Exposes individual time entities for each day slot."
         }
       },
-      "user": {
-        "title": "Rika Firenet Options",
-        "description": "Adjust operational settings and choose which entity types to expose.",
+      "cloud": {
+        "title": "Switch to Rika Cloud",
+        "description": "Enter your Rika Firenet Cloud credentials to operate via the online service:",
         "data": {
-          "defaultTemperature": "Default temperature (°C)",
-          "defaultScanInterval": "Scan interval (seconds)",
-          "pendingTimeout": "Command confirmation timeout (seconds)",
-          "climate": "Enable climate entity",
-          "sensor": "Enable measurement sensors",
-          "binary_sensor": "Enable binary sensors",
-          "switch": "Enable control switches",
-          "number": "Enable numeric adjustments",
-          "schedule_entity": "Schedule to copy to the stove (HA Helper)",
-          "button": "Enable action buttons (Button)",
-          "time": "Enable time entities (Time)"
+          "username": "Username (Email)",
+          "password": "Password"
         },
         "data_description": {
-          "defaultTemperature": "Fallback setpoint temperature used by default if not specified (default: 21 °C).",
-          "defaultScanInterval": "Polling frequency from the Rika Firenet cloud (default: 15 seconds).",
-          "pendingTimeout": "Maximum timeout before alert and abort if stove does not confirm commands (default: 300 s / 5 min).",
-          "climate": "Exposes the main climate entity to control mode, target temperature, and state.",
-          "sensor": "Exposes sensors: room temperature, pellet consumption, power, fan velocity, etc.",
-          "binary_sensor": "Exposes binary sensors: door open, pellet lid, Wi-Fi signal, grid contact, etc.",
-          "switch": "Exposes on/off controls: stove on/off, heating times, convection fans.",
-          "number": "Exposes numeric controls: heating power, convection fan areas, set back temperature.",
-          "schedule_entity": "Optional. A Home Assistant schedule helper drawn as a weekly grid. The \"Copy schedule to the stove\" button sends it to the stove.",
-          "button": "Exposes buttons to copy, send, or discard heating schedule.",
-          "time": "Exposes individual time entities for each day slot."
+          "username": "The email address used to log in at www.rika-firenet.com",
+          "password": "The password for your Rika Firenet account"
+        }
+      },
+      "local": {
+        "title": "Switch to Open Firenet Local",
+        "description": "Enter your local Open Firenet bridge address to operate via direct HTTP:",
+        "data": {
+          "host": "Host or IP address"
+        },
+        "data_description": {
+          "host": "Local hostname or IP address (e.g., open-firenet.local or 192.168.1.50)"
         }
       }
     }

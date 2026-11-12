@@ -3,34 +3,62 @@
     "step": {
       "user": {
         "title": "Connexion Rika Firenet",
-        "description": "Configurez la connexion avec votre compte Rika Firenet pour piloter votre poêle.",
-        "data": {
-          "connection_type": "Type de connexion",
-          "host": "Hôte / IP Open Firenet",
-          "username": "Identifiant (Email)",
-          "password": "Mot de passe"
-        },
-        "data_description": {
-          "connection_type": "Choisissez entre le Cloud Rika Firenet (rika-firenet.com) ou le protocole local HTTP Open Firenet.",
-          "host": "Nom d'hôte ou adresse IP locale du pont Open Firenet (ex: open-firenet.local ou 192.168.1.50).",
-          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com (Cloud uniquement)",
-          "password": "Le mot de passe associé à votre compte Rika Firenet (Cloud uniquement)"
+        "description": "Choisissez le mode de connexion à votre poêle Rika :",
+        "menu_options": {
+          "cloud": "Cloud Rika Firenet (officiel)",
+          "local": "Local Open Firenet (pont HTTP direct)"
         }
       },
-      "reconfigure_confirm": {
-        "title": "Reconfigurer la connexion Rika Firenet",
-        "description": "Basculez entre le mode Cloud Rika et le mode Local Open Firenet, ou modifiez vos identifiants/adresse d'hôte.",
+      "cloud": {
+        "title": "Connexion Cloud Rika",
+        "description": "Saisissez vos identifiants de compte www.rika-firenet.com :",
         "data": {
-          "connection_type": "Type de connexion",
-          "host": "Hôte / IP Open Firenet",
           "username": "Identifiant (Email)",
           "password": "Mot de passe"
         },
         "data_description": {
-          "connection_type": "Choisissez entre le Cloud Rika Firenet (rika-firenet.com) ou le protocole local HTTP Open Firenet.",
-          "host": "Nom d'hôte ou adresse IP locale du pont Open Firenet (ex: open-firenet.local ou 192.168.1.50).",
-          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com (Cloud uniquement)",
-          "password": "Le mot de passe associé à votre compte Rika Firenet (Cloud uniquement)"
+          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com",
+          "password": "Le mot de passe associé à votre compte Rika Firenet"
+        }
+      },
+      "local": {
+        "title": "Connexion Locale Open Firenet",
+        "description": "Saisissez l'adresse de votre passerelle locale Open Firenet :",
+        "data": {
+          "host": "Hôte ou adresse IP"
+        },
+        "data_description": {
+          "host": "Nom d'hôte ou adresse IP locale (ex : open-firenet.local ou 192.168.1.50)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer la connexion Rika Firenet",
+        "description": "Choisissez le mode de connexion vers lequel basculer :",
+        "menu_options": {
+          "reconfigure_cloud": "Basculer vers le Cloud Rika (identifiants)",
+          "reconfigure_local": "Basculer vers Open Firenet Local (pont HTTP / IP)"
+        }
+      },
+      "reconfigure_cloud": {
+        "title": "Reconfiguration vers Cloud Rika",
+        "description": "Saisissez ou mettez à jour les identifiants de votre compte www.rika-firenet.com :",
+        "data": {
+          "username": "Identifiant (Email)",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "username": "L'adresse email de votre compte www.rika-firenet.com",
+          "password": "Le mot de passe de votre compte Rika Firenet"
+        }
+      },
+      "reconfigure_local": {
+        "title": "Reconfiguration vers Local Open Firenet",
+        "description": "Saisissez ou mettez à jour l'adresse de votre passerelle locale Open Firenet :",
+        "data": {
+          "host": "Hôte ou adresse IP"
+        },
+        "data_description": {
+          "host": "Nom d'hôte ou adresse IP locale (ex : open-firenet.local ou 192.168.1.50)"
         }
       }
     },
@@ -39,13 +67,23 @@
       "cannot_connect": "Impossible de contacter le pont Open Firenet local."
     },
     "abort": {
-      "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée."
+      "single_instance_allowed": "Une seule instance de l'intégration Rika Firenet est autorisée.",
+      "reconfigure_successful": "La reconfiguration de la connexion a réussi."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Options Rika Firenet",
+        "description": "Choisissez la section à configurer :",
+        "menu_options": {
+          "general": "Paramètres généraux (consignes, rafraîchissement, entités)",
+          "cloud": "Basculer vers le Cloud Rika (identifiants)",
+          "local": "Basculer vers Open Firenet Local (pont HTTP / IP)"
+        }
+      },
+      "general": {
+        "title": "Paramètres généraux",
         "description": "Ajustez les paramètres de fonctionnement et choisissez les types d'entités à exposer.",
         "data": {
           "defaultTemperature": "Température par défaut (°C)",
@@ -74,34 +112,26 @@
           "time": "Expose les entités horaires individuelles pour chaque plage de la semaine."
         }
       },
-      "user": {
-        "title": "Options Rika Firenet",
-        "description": "Ajustez les paramètres de fonctionnement et choisissez les types d'entités à exposer.",
+      "cloud": {
+        "title": "Basculer vers le Cloud Rika",
+        "description": "Saisissez vos identifiants Cloud Rika Firenet pour basculer ce poêle sur le service en ligne :",
         "data": {
-          "defaultTemperature": "Température par défaut (°C)",
-          "defaultScanInterval": "Intervalle d'actualisation (secondes)",
-          "pendingTimeout": "Délai de confirmation des commandes (secondes)",
-          "climate": "Activer le thermostat (Climate)",
-          "sensor": "Activer les capteurs de mesure (Sensor)",
-          "binary_sensor": "Activer les capteurs d'état (Binary sensor)",
-          "switch": "Activer les interrupteurs (Switch)",
-          "number": "Activer les réglages numériques (Number)",
-          "schedule_entity": "Planning de chauffe à copier (Helper HA Schedule)",
-          "button": "Activer les boutons d'action (Button)",
-          "time": "Activer les sélecteurs horaires (Time)"
+          "username": "Identifiant (Email)",
+          "password": "Mot de passe"
         },
         "data_description": {
-          "defaultTemperature": "Température de consigne par défaut utilisée si non renseignée (défaut : 21 °C).",
-          "defaultScanInterval": "Fréquence de scrutation des données auprès du cloud Rika (défaut : 15 secondes).",
-          "pendingTimeout": "Délai maximal d'attente de confirmation par le cloud avant alerte et abandon (défaut : 300 s / 5 min).",
-          "climate": "Expose l'entité principale pour piloter le mode de chauffage, la consigne et le fonctionnement.",
-          "sensor": "Expose les capteurs : température ambiante, consommation de granulés, puissance, vitesse ventilateur, etc.",
-          "binary_sensor": "Expose les détecteurs : porte ouverte, trappe à granulés, signal Wi-Fi, contact réseau, etc.",
-          "switch": "Expose les commandes Tout-ou-Rien : marche/arrêt, programmation horaire, ventilateurs de convection.",
-          "number": "Expose les réglages numériques : puissance de chauffe, réglage des ventilateurs, température de veille.",
-          "schedule_entity": "Helper Home Assistant de type Schedule représentant la grille hebdomadaire. Le bouton \"Copier le planning vers le poêle\" transfère ce programme au poêle.",
-          "button": "Expose les boutons pour copier, envoyer ou annuler les plages de chauffe.",
-          "time": "Expose les entités horaires individuelles pour chaque plage de la semaine."
+          "username": "L'adresse email de votre compte www.rika-firenet.com",
+          "password": "Le mot de passe de votre compte Rika Firenet"
+        }
+      },
+      "local": {
+        "title": "Basculer vers Open Firenet Local",
+        "description": "Saisissez l'adresse de votre passerelle locale Open Firenet pour piloter le poêle directement en HTTP :",
+        "data": {
+          "host": "Hôte ou adresse IP"
+        },
+        "data_description": {
+          "host": "Nom d'hôte ou adresse IP locale (ex : open-firenet.local ou 192.168.1.50)"
         }
       }
     }
