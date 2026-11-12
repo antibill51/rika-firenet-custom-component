@@ -4,7 +4,7 @@ import requests.exceptions
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_registry as er
 
 from .const import (
     CONF_CONNECTION_TYPE,
@@ -78,6 +78,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
+    # Nettoyage automatique des appareils et entités orphelins (ex. poêle retiré du cloud)
+    await _async_cleanup_orphan_devices(hass, entry, coordinator)
+
     # On active uniquement les plateformes nécessaires
     enabled_platforms = [
         platform for platform in PLATFORMS if entry.options.get(str(platform), entry.options.get(platform, True))
@@ -104,3 +107,67 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry):
     """Handle options update."""
     _LOGGER.info("Options updated for entry: %s", entry.entry_id)
     await hass.config_entries.async_reload(entry.entry_id)
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, config_entry: ConfigEntry, device_entry: dr.DeviceEntry
+) -> bool:
+    """Allow manual removal of a device from the Home Assistant UI."""
+    coordinator: RikaFirenetCoordinator = hass.data[DOMAIN].get(config_entry.entry_id)
+    if not coordinator:
+        return True
+
+    # Récupérer les identifiants Rika du device
+    rika_identifiers = {
+        ident[1] for ident in device_entry.identifiers if ident[0] == DOMAIN
+    }
+
+    # Si le poêle est encore actif dans le coordinateur, on refuse la suppression
+    active_stove_ids = {str(stove.get_id()) for stove in coordinator.get_stoves()}
+    for ident in rika_identifiers:
+        if ident in active_stove_ids:
+            _LOGGER.warning(
+                "Cannot remove device %s: stove %s is still configured and active",
+                device_entry.name,
+                ident,
+            )
+            return False
+
+    # Nettoyage des entités associées au device
+    entity_reg = er.async_get(hass)
+    entities = er.async_entries_for_device(entity_reg, device_entry.id)
+    for entity in entities:
+        _LOGGER.info("Removing orphan entity: %s", entity.entity_id)
+        entity_reg.async_remove(entity.entity_id)
+
+    _LOGGER.info("Device %s (%s) successfully removed", device_entry.name, device_entry.id)
+    return True
+
+async def _async_cleanup_orphan_devices(
+    hass: HomeAssistant, entry: ConfigEntry, coordinator: RikaFirenetCoordinator
+) -> None:
+    """Automatically purge devices and entities that are no longer reported by the coordinator."""
+    device_reg = dr.async_get(hass)
+    entity_reg = er.async_get(hass)
+
+    active_stove_ids = {str(stove.get_id()) for stove in coordinator.get_stoves()}
+    devices = dr.async_entries_for_config_entry(device_reg, entry.entry_id)
+
+    for device in devices:
+        rika_identifiers = {
+            ident[1] for ident in device.identifiers if ident[0] == DOMAIN
+        }
+        # Si aucun identifiant du device ne correspond à un poêle actif, c'est un orphelin
+        if rika_identifiers and rika_identifiers.isdisjoint(active_stove_ids):
+            _LOGGER.info(
+                "Cleaning up orphan device %s (identifiers=%s) no longer present in Rika",
+                device.name,
+                rika_identifiers,
+            )
+            # Supprimer d'abord les entités rattachées
+            entities = er.async_entries_for_device(entity_reg, device.id)
+            for entity in entities:
+                _LOGGER.info("Removing orphan entity: %s", entity.entity_id)
+                entity_reg.async_remove(entity.entity_id)
+
+            # Supprimer l'appareil
+            device_reg.async_remove_device(device.id)
