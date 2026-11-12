@@ -1,109 +1,130 @@
-# Rika Firenet (forked from Fockaert/rika-firenet-custom-component)
+# Rika Firenet & Open Firenet Integration for Home Assistant
 
-_Component to integrate with Rika Firenet [rikafirenet]._
+Custom component for Home Assistant to integrate and control RIKA pellet and combi stoves via the official **Rika Firenet Cloud** service or 100% locally using an **Open Firenet** ESP32 bridge.
 
-## Avertissement & Philosophie / Disclaimer
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=antibill51&repository=rika-firenet-custom-component)
 
-Ce composant a pour objectif d'assurer une passerelle directe et fidèle entre le service cloud [Rika Firenet](https://www.rika-firenet.com) et Home Assistant.
+---
+
+## 🌐 Language / Langue
+
+- [🇬🇧 English Documentation](#-english-documentation)
+  - [Overview & Philosophy](#overview--philosophy)
+  - [Key Features](#key-features)
+  - [Installation](#installation)
+  - [Configuration & Setup](#configuration--setup)
+  - [Switching Cloud / Local (Seamless Migration)](#switching-cloud--local-seamless-migration)
+  - [Events & Notifications](#events--notifications)
+  - [Lovelace Dashboard Examples](#lovelace-dashboard-examples)
+- [🇫🇷 Documentation en Français](#-documentation-en-français)
+  - [Présentation & Philosophie](#présentation--philosophie)
+  - [Fonctionnalités Clés](#fonctionnalités-clés)
+  - [Installation](#installation-1)
+  - [Configuration](#configuration-1)
+  - [Basculer Cloud / Local (Transition transparente)](#basculer-cloud--local-transition-transparente)
+  - [Événements et Notifications](#événements-et-notifications)
+  - [Exemples de Cartes Lovelace](#exemples-de-cartes-lovelace)
+
+---
+
+# 🇬🇧 English Documentation
+
+## Overview & Philosophy
+
+This integration provides a seamless bridge between your RIKA stove and Home Assistant. It supports two operating modes:
+1. **Rika Firenet Cloud**: Connects to the official cloud portal ([rika-firenet.com](https://www.rika-firenet.com)) with your user account.
+2. **Open Firenet Local HTTP**: Connects directly and 100% locally to an [Open Firenet](https://github.com/openfirenet/open-firenet-ha) ESP32 bridge over your local network using direct HTTP REST calls (`/api/state` and `/api/controls`), without any cloud dependency and without MQTT entity duplicates.
 
 > [!IMPORTANT]
-> **Ce composant ne modifie pas le fonctionnement fondamental ni les sécurités matérielles des poêles Rika.**
-> Sauf rares exceptions (restitution d'états spécifiques), il fait le lien fidèle entre le portail cloud et Home Assistant. Les modes de fonctionnement, les plages de réglage, les vitesses de ventilation et les cycles de fonctionnement (allumage, chauffe, nettoyage, fin de combustion `burn_off`, arrêt) sont strictement identiques à ceux proposés sur le poêle lui-même.
+> **Safety Disclaimer**: This integration does not alter the underlying stove firmware, safety limits, or internal mechanics. All operating modes, power levels, convection fan steps, and combustion cycles (ignition, heating, cleaning, burn-off, shutdown) follow the stove's native electronic board specifications.
+
+## Key Features
+
+- **Dual-Mode Connectivity**: Choose between official Cloud or local Open Firenet HTTP bridge.
+- **Persistent Entity Identity**: Seamless transition between Cloud and Local modes without renaming entities or breaking dashboards/automations.
+- **Thermostat & Climate Control**: Full control over HVAC modes (Off, Heat/Manual, Auto) and presets (Normal/Power %, Comfort/Target Temperature).
+- **Comprehensive Sensors**: Room temperature, flame/combustion status, pellet consumption, runtime statistics, error and diagnostic codes.
+- **Heating Schedule Synchronization**:
+  - View and edit stove heating time slots directly with native HA `time` entities.
+  - One-click synchronization from a native Home Assistant `schedule` helper entity to the stove.
+- **Command Timeout Detection**: Automatic event firing (`rika_firenet_command_timeout`) and persistent notifications when a command cannot be confirmed by the stove.
 
 ## Installation
 
-Use [hacs](https://hacs.xyz/). (Recommended method)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=antibill51&repository=rika-firenet-custom-component)
+### Method 1: HACS (Recommended)
 
-or:
+1. Open **HACS** in your Home Assistant instance.
+2. Search for `Rika Firenet`. If not present in the default store, add this repository as a **Custom Repository** (Category: `Integration`).
+3. Click **Download**, then restart Home Assistant.
 
-1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `rika_firenet`.
-4. Download _all_ the files from the `custom_components/rika_firenet/` directory (folder) in this repository.
-5. Place the files you downloaded in the new directory (folder) you created.
-6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Rika Firenet"
+### Method 2: Manual Installation
 
-## Configuration is done in the UI
+1. Browse to your Home Assistant configuration directory (where `configuration.yaml` is located).
+2. Create the folder `custom_components/rika_firenet` if it does not already exist.
+3. Copy all files from `custom_components/rika_firenet/` of this repository into that folder.
+4. Restart Home Assistant.
 
-During initial setup in **Settings → Devices & Services → Add Integration → Rika Firenet**, you can choose between two connection modes (`connection_type`):
-1. **Rika Firenet Cloud (`cloud`)**: Connects to the official Rika cloud portal (`https://www.rika-firenet.com`) using your email and password.
-2. **Open Firenet Local HTTP (`local`)**: Connects 100% locally (without cloud dependency) to an [Open-Firenet](https://github.com/antibill51/open-firenet) ESP32-S3 USB CDC bridge via its local HTTP REST API (`GET /api/state`, `POST /api/controls`). Simply provide the bridge hostname or IP (default: `open-firenet.local`).
+## Configuration & Setup
 
-You can customize the following options via the **Configure** button on the integration:
-- **Default temperature**: Default target temperature.
-- **Scan interval**: Polling interval for updates (default: 15 seconds).
-- **Command confirmation timeout**: Maximum wait time before abandoning unconfirmed commands sent to the stove (default: 300 seconds / 5 minutes).
-- **Platform toggles**: Enable or disable climate, sensors, binary sensors, switches, or numbers.
+Configuration is performed entirely via the Home Assistant user interface:
 
-### Événements et Notifications / Events & Notifications
+1. Go to **Settings → Devices & Services → Add Integration**.
+2. Search for **Rika Firenet**.
+3. Choose your **Connection Type**:
+   - **Rika Firenet Cloud**: Enter your email address and password for [rika-firenet.com](https://www.rika-firenet.com).
+   - **Open Firenet Local HTTP**: Enter the IP address or hostname of your ESP32 bridge (e.g. `open-firenet.local` or `192.168.1.50`).
 
-When controls sent to the stove cannot be confirmed by the cloud within the configured timeout (default 5 minutes), the integration:
-1. Creates a persistent notification in the Home Assistant UI (`persistent_notification`).
-2. Fires an event `rika_firenet_command_timeout` on the event bus with payload (`stove_id`, `stove_name`, `elapsed_seconds`, `timeout_seconds`).
+### Integration Options
 
-#### Exemple d'automatisation : Notification Mobile (HA Companion)
+Click **Configure** on the integration card to adjust runtime parameters:
+- **Default temperature**: Fallback target temperature (°C).
+- **Scan interval**: Polling interval in seconds (default: `15`).
+- **Command confirmation timeout**: Maximum wait time before flagging an unconfirmed command (default: `300` seconds).
+- **Heating schedule entity**: Optional link to a native HA `schedule.*` helper for one-click schedule pushing.
+- **Platform toggles**: Enable or disable climate, sensors, binary sensors, switches, numbers, buttons, or time entities.
+
+## Switching Cloud / Local (Seamless Migration)
+
+If you already use the Cloud integration and want to switch to a local Open Firenet bridge (or vice-versa):
+- The `stove_id` (stove serial number / fabrication number) remains the unique reference key.
+- All entities (`climate.*`, `sensor.*`, `number.*`, etc.) keep their exact same `unique_id` and history in Home Assistant.
+- To migrate an existing stove:
+  - If you reconfigure the entry, the unique entity identifiers remain identical.
+  - Dashboards, statistics, and automations continue to operate without any reconfiguration needed.
+
+## Events & Notifications
+
+When controls sent to the stove are not confirmed within the configured timeout window, the integration:
+1. Raises a persistent notification in Home Assistant.
+2. Dispatches a `rika_firenet_command_timeout` event on the bus (`stove_id`, `stove_name`, `elapsed_seconds`, `timeout_seconds`).
+
+### Example Automation: Mobile Notification
+
 ```yaml
-alias: "Rika Firenet - Alerte échec de commande (Mobile)"
+alias: "Rika Firenet - Command Timeout Alert"
 trigger:
   - trigger: event
     event_type: rika_firenet_command_timeout
 action:
   - action: notify.notify
     data:
-      title: "Rika Firenet - Commande non confirmée"
+      title: "Rika Firenet - Command Not Confirmed"
       message: >-
-        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
-        n'ont pas pu être confirmés après {{ trigger.event.data.elapsed_seconds }} secondes.
+        Controls sent to stove {{ trigger.event.data.stove_name }}
+        were not confirmed after {{ trigger.event.data.elapsed_seconds }} seconds.
 ```
 
-#### Exemple d'automatisation : Notification Telegram
-```yaml
-alias: "Rika Firenet - Alerte échec de commande (Telegram)"
-trigger:
-  - trigger: event
-    event_type: rika_firenet_command_timeout
-action:
-  - action: notify.telegram
-    data:
-      title: "⚠️ Rika Firenet - Commande non confirmée"
-      message: >-
-        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
-        n'ont pas pu être confirmés par le poêle après {{ trigger.event.data.elapsed_seconds }} secondes.
-```
+## Lovelace Dashboard Examples
 
-## Lovelace: 
+![Lovelace Example](https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/Screenshot/capture.png)
 
-![alt text](https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/Screenshot/capture.png)
+### Recommended Community Cards
+- `custom:config-template-card`
+- `custom:stack-in-card`
+- `custom:simple-thermostat`
 
-### HA config :
-```yaml
-sensor:
-  - platform: template
-    sensors:
-      stove_activity:
-        friendly_name: Stove activity
-        value_template: >
-          {% if states.sensor.rika_domo_stove_burning.state == 'True' %}
-            {{states.number.rika_domo_heating_power.state}}
-          {%else %}
-            {{0}}
-          {% endif %}
-        unit_of_measurement: "%"
-```
-
-### Cards needed :
-
-custom:config-template-card
-custom:stack-in-card
-custom:simple-thermostat
-
-For pellet in stock : 
-I use GSG2.0 for Pellet stock. https://domotique-home.fr/gestion-de-chauffage-stock-de-granules-gsg/
-
-### Lovelace card basic example : 
-#### PRESET MODE NORMAL (power in percent) : 
+### Example Card (Manual / Power Mode %)
 ```yaml
 type: custom:config-template-card
 variables:
@@ -130,46 +151,22 @@ card:
             width: 30%
         - type: state-label
           entity: sensor.rika_domo_stove_status
-          tap_action: none
-          hold_action: none
           style:
             top: 17%
             left: 50%
             font-size: 15px
         - type: state-label
-          entity: climate.rika_domo
-          attribute: friendly_name
-          tap_action: none
-          hold_action: none
-          style:
-            top: 08%
-            left: 17%
-            font-size: 18px
-        - type: state-label
           entity: sensor.stove_activity
-          prefix: 'Puissance de chauffe : '
-          tap_action: none
-          hold_action: none
+          prefix: 'Heating power: '
           style:
             top: 97%
             left: 50%
             font-size: 15px
             color: red
         - type: state-label
-          entity: sensor.rika_domo_pellets_before_service
-          prefix: 'Service : '
-          tap_action: none
-          hold_action: none
-          style:
-            top: 97%
-            left: 90%
-            font-size: 11px
-        - type: state-label
           entity: climate.rika_domo
           attribute: current_temperature
           suffix: °C
-          tap_action: none
-          hold_action: none
           style:
             color: '#3498db'
             top: 88%
@@ -177,84 +174,150 @@ card:
             font-size: 27px
         - type: state-label
           entity: number.rika_domo_heating_power
-          tap_action: none
-          hold_action: none
           style:
             top: 42%
             left: 85%
             font-size: 35px
             color: orange
-        - type: icon
-          icon: mdi:chevron-up
-          title: ${POWER+STEP}
-          tap_action:
-            action: call-service
-            service: number.set_value
-            service_data:
-              entity_id: number.rika_domo_heating_power
-              value: ${POWER+STEP}
-          hold_action: none
-          style:
-            top: 20%
-            left: 79%
-            transform: scale(1,1)
-        - type: icon
-          icon: mdi:chevron-down
-          title: ${POWER-STEP}
-          tap_action:
-            action: call-service
-            service: number.set_value
-            service_data:
-              entity_id: number.rika_domo_heating_power
-              value: ${POWER-STEP}
-          hold_action: none
-          style:
-            top: 54%
-            left: 79%
-            transform: scale(1,1)
     - type: custom:simple-thermostat
-      style: |
-        ha-card {
-          --st-spacing: 1.5px;
-        }
       entity: climate.rika_domo
-      show_header: true
+      show_header: false
       decimals: '1'
-      unit: °c
-      step_size: '0.5'
-      setpoints: false
-      header: false
-      control: true
-      hide:
-        state: true
-        temperature: true
       control:
         hvac:
           'off':
-            name: Arrêt
+            name: Off
           'heat':
-            name: Manuel
+            name: Manual
           'auto':
-            name: Automatique
+            name: Auto
         preset:
           'comfort': 
-            name: Confort
+            name: Comfort
           'none':
             name: Normal
-      layout:
-        mode:
-          names: true
-          icons: false
-          headings: false
-      step_layout: column
 ```
-#### PRESET MODE COMFORT (Target temperature) : 
+
+---
+
+# 🇫🇷 Documentation en Français
+
+## Présentation & Philosophie
+
+Cette intégration assure une passerelle complète entre votre poêle à granulés/mixte RIKA et Home Assistant. Elle prend en charge deux modes d'exploitation :
+1. **Rika Firenet Cloud** : Connexion au portail officiel ([rika-firenet.com](https://www.rika-firenet.com)) avec vos identifiants utilisateur.
+2. **Open Firenet Local HTTP** : Connexion 100% locale à une passerelle ESP32 [Open Firenet](https://github.com/openfirenet/open-firenet-ha) via son API REST HTTP locale (`/api/state` et `/api/controls`), sans dépendance envers le cloud Rika et sans doublon d'entités MQTT.
+
+> [!IMPORTANT]
+> **Avertissement & Sécurité** : Cette intégration ne modifie ni les sécurités matérielles, ni les seuils critiques du poêle. Les modes de fonctionnement, puissances, vitesses de convection et cycles de combustion (allumage, régulation, extinction, nettoyage) demeurent strictement régis par la carte électronique d'origine Rika.
+
+## Fonctionnalités Clés
+
+- **Double mode de fonctionnement** : Choisissez entre le cloud officiel et la passerelle locale HTTP Open Firenet.
+- **Stabilité et unicité des entités** : Transition transparente Cloud ↔ Local sans modification des identifiants d'entités, préservant vos historiques et vos cartes.
+- **Contrôle climatique complet** : Gestion des modes HVAC (Arrêt, Manuel/Chauffe, Automatique) et des presets (Normal / Puissance %, Confort / Température de consigne).
+- **Capteurs et diagnostics riches** : Température de pièce, état de la flamme, consommation estimée de granulés, heures de fonctionnement, codes d'erreur et alertes d'entretien.
+- **Gestion des plages horaires de chauffe** :
+  - Visualisation et ajustement des heures de chauffe via des entités `time` natives Home Assistant.
+  - Synchronisation en 1 clic d'un helper natif `schedule` Home Assistant vers le poêle grâce à un bouton dédié.
+- **Surveillance des ordres de commande** : Déclenchement automatique d'un événement `rika_firenet_command_timeout` et d'une notification persistante si un ordre envoyé n'est pas acquitté dans le délai imparti.
+
+## Installation
+
+### Méthode 1 : HACS (Recommandée)
+
+1. Ouvrez **HACS** dans votre instance Home Assistant.
+2. Recherchez `Rika Firenet`. Si le dépôt n'apparaît pas dans la liste officielle, ajoutez ce dépôt dans **Dépôts personnalisés** (Catégorie : `Intégration`).
+3. Cliquez sur **Télécharger**, puis redémarrez Home Assistant.
+
+### Méthode 2 : Installation Manuelle
+
+1. Accédez au répertoire de configuration de votre Home Assistant (dossier contenant `configuration.yaml`).
+2. Créez le dossier `custom_components/rika_firenet` s'il n'existe pas.
+3. Copiez l'ensemble des fichiers du dossier `custom_components/rika_firenet/` de ce dépôt dans ce nouveau dossier.
+4. Redémarrez Home Assistant.
+
+## Configuration
+
+La configuration s'effectue directement depuis l'interface utilisateur de Home Assistant :
+
+1. Rendez-vous dans **Paramètres → Appareils et services → Ajouter une intégration**.
+2. Recherchez **Rika Firenet**.
+3. Sélectionnez le **Type de connexion** souhaité :
+   - **Rika Firenet Cloud** : Renseignez votre adresse email et votre mot de passe [rika-firenet.com](https://www.rika-firenet.com).
+   - **Open Firenet Local HTTP** : Renseignez le nom d'hôte ou l'adresse IP de votre passerelle ESP32 (ex. `open-firenet.local` ou `192.168.1.50`).
+
+### Options de l'Intégration
+
+Cliquez sur le bouton **Configurer** sur la carte de l'intégration pour ajuster les paramètres suivants :
+- **Température par défaut** : Température cible de secours (°C).
+- **Intervalle de rafraîchissement** : Fréquence d'interrogation en secondes (par défaut : `15`).
+- **Délai d'expiration des commandes** : Durée maximale d'attente de confirmation d'un ordre avant alerte (par défaut : `300` secondes / 5 minutes).
+- **Entité planning de chauffe** : Sélection d'une entité planificateur `schedule.*` de Home Assistant pour la recopie vers le poêle.
+- **Activation des plateformes** : Activation ou désactivation sélective des entités (climatisation, capteurs, capteurs binaires, commutateurs, nombres, boutons, horaires).
+
+## Basculer Cloud / Local (Transition transparente)
+
+Pour les utilisateurs disposant déjà de l'intégration en mode Cloud et souhaitant basculer sur une clé locale Open Firenet (ou inversement) :
+- L'identifiant unique du poêle (`stove_id` / numéro de fabrication) reste la référence maîtresse.
+- Toutes vos entités (`climate.*`, `sensor.*`, `number.*`, etc.) conservent exactement le même `unique_id` dans la base de données Home Assistant.
+- Vos automatisations, tableaux de bord Lovelace et historiques de consommation continuent de fonctionner sans aucune coupure ni doublon.
+
+## Événements et Notifications
+
+Si une commande envoyée au poêle ne reçoit pas de confirmation dans le délai configuré (par défaut 5 minutes), l'intégration :
+1. Crée une notification persistante dans Home Assistant (`persistent_notification`).
+2. Émet l'événement `rika_firenet_command_timeout` sur le bus d'événements (`stove_id`, `stove_name`, `elapsed_seconds`, `timeout_seconds`).
+
+### Exemple d'Automatisation : Notification Mobile (HA Companion)
+
+```yaml
+alias: "Rika Firenet - Alerte échec de commande (Mobile)"
+trigger:
+  - trigger: event
+    event_type: rika_firenet_command_timeout
+action:
+  - action: notify.notify
+    data:
+      title: "Rika Firenet - Commande non confirmée"
+      message: >-
+        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
+        n'ont pas pu être confirmés après {{ trigger.event.data.elapsed_seconds }} secondes.
+```
+
+### Exemple d'Automatisation : Notification Telegram
+
+```yaml
+alias: "Rika Firenet - Alerte échec de commande (Telegram)"
+trigger:
+  - trigger: event
+    event_type: rika_firenet_command_timeout
+action:
+  - action: notify.telegram
+    data:
+      title: "⚠️ Rika Firenet - Commande non confirmée"
+      message: >-
+        Les réglages envoyés au poêle {{ trigger.event.data.stove_name }}
+        n'ont pas pu être confirmés par le poêle après {{ trigger.event.data.elapsed_seconds }} secondes.
+```
+
+## Exemples de Cartes Lovelace
+
+![Capture Lovelace](https://raw.githubusercontent.com/antibill51/rika-firenet-custom-component/main/Screenshot/capture.png)
+
+### Cartes communautaires recommandées
+- `custom:config-template-card`
+- `custom:stack-in-card`
+- `custom:simple-thermostat`
+
+### Carte Lovelace : Mode Puissance % (Manuel)
 ```yaml
 type: custom:config-template-card
 variables:
   IMG: states['climate.rika_domo'].attributes.entity_picture
-  TEMP: states['climate.rika_domo'].attributes.temperature
-  STEP: states['climate.rika_domo'].attributes.target_temp_step
+  POWER: |
+    { (states['number.rika_domo_heating_power'].state)*1 }
+  STEP: states['number.rika_domo_heating_power'].attributes.step
 entities:
   - climate.rika_domo
   - number.rika_domo_heating_power
@@ -274,27 +337,13 @@ card:
             width: 30%
         - type: state-label
           entity: sensor.rika_domo_stove_status
-          tap_action: none
-          hold_action: none
           style:
             top: 17%
             left: 50%
             font-size: 15px
         - type: state-label
-          entity: climate.rika_domo
-          attribute: friendly_name
-          tap_action: none
-          hold_action: none
-          style:
-            top: 08%
-            left: 17%
-            font-size: 18px
-        - type: state-label
-          entity: number.rika_domo_room_power_request
+          entity: sensor.stove_activity
           prefix: 'Puissance de chauffe : '
-          suffix: '/4'
-          tap_action: none
-          hold_action: none
           style:
             top: 97%
             left: 50%
@@ -303,8 +352,6 @@ card:
         - type: state-label
           entity: sensor.rika_domo_pellets_before_service
           prefix: 'Service : '
-          tap_action: none
-          hold_action: none
           style:
             top: 97%
             left: 90%
@@ -313,79 +360,24 @@ card:
           entity: climate.rika_domo
           attribute: current_temperature
           suffix: °C
-          tap_action: none
-          hold_action: none
           style:
             color: '#3498db'
             top: 88%
             left: 50%
             font-size: 27px
         - type: state-label
-          entity: climate.rika_domo
-          suffix: °C
-          attribute: temperature
-          tap_action: none
-          hold_action: none
+          entity: number.rika_domo_heating_power
           style:
             top: 42%
             left: 85%
             font-size: 35px
             color: orange
-        - type: icon
-          icon: mdi:chevron-up
-          title: ${TEMP+STEP}
-          tap_action:
-            action: call-service
-            service: climate.set_temperature
-            target:
-              entity_id: climate.rika_domo
-            service_data:
-              temperature: ${TEMP+STEP}
-          hold_action: none
-          style:
-            top: 20%
-            left: 79%
-            transform: scale(1,1)
-        - type: icon
-          icon: mdi:chevron-down
-          title: ${TEMP-STEP}
-          tap_action:
-            action: call-service
-            service: climate.set_temperature
-            service_data:
-              entity_id: climate.rika_domo
-              temperature: ${TEMP-STEP}
-          hold_action: none
-          style:
-            top: 54%
-            left: 79%
-            transform: scale(1,1)
-      card_mod:
-        style: |
-          ha-card {
-            border: none;
-            }
     - type: custom:simple-thermostat
-      style: |
-        ha-card {
-          --st-spacing: 1.5px;
-        }
       entity: climate.rika_domo
-      show_header: true
+      show_header: false
       decimals: '1'
       unit: °c
       step_size: '0.5'
-      setpoints: false
-      header: false
-      control: true
-      hide:
-        state: true
-        temperature: true
-      layout:
-        mode:
-          names: true
-          icons: false
-          headings: false
       control:
         hvac:
           'off':
@@ -399,61 +391,11 @@ card:
             name: Confort
           'none':
             name: Normal
-      step_layout: column
 ```
 
-### Informations: 
+---
 
-I bypass Rika built'in thermostat with PID Thermostat.
+## Contributions
 
-More examples are in HA config folder. (lovelace / automations / ...)
-
-rika_domo: name of the stove from this component. Replace with your's.
-
-climate.rika: PID thermostat using https://github.com/antibill51/HASmartThermostat.
-climate.rika_z2: PID thermostat for multiair2.
-
-If I forgot elements, ask for it ;)
-
-
-## Utility meters example: (I don't use it)
-```yaml
-utility_meter:
-  hourly_stove_consumption:
-    source: sensor.<stove>_stove_consumption
-    cycle: hourly
-  daily_stove_consumption:
-    source: sensor.<stove>_stove_consumption
-    cycle: daily
-  weekly_stove_consumption:
-    source: sensor.<stove>_stove_consumption
-    cycle: weekly
-  monthly_stove_consumption:
-    source: sensor.<stove>_stove_consumption
-    cycle: monthly
-
-  hourly_stove_runtime:
-    source: sensor.<stove>_stove_runtime
-    cycle: hourly
-  daily_stove_runtime:
-    source: sensor.<stove>_stove_runtime
-    cycle: daily
-  weekly_stove_runtime:
-    source: sensor.<stove>_stove_runtime
-    cycle: weekly
-  monthly_stove_runtime:
-    source: sensor.<stove>_stove_runtime
-    cycle: monthly
-```
-
-## Contributions are welcome!
-
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
-
-Si besoin, les échanges en français sont également acceptés.
-
-***
-
-[rikafirenet]: https://github.com/antibill51/rika-firenet-custom-component
-[forum]: https://community.home-assistant.io/
-[releases]: https://github.com/antibill51/rika-firenet-custom-component/releases
+Les contributions, signalements de bugs et suggestions sont les bienvenus via les [Issues GitHub](https://github.com/antibill51/rika-firenet-custom-component/issues) et [Pull Requests](https://github.com/antibill51/rika-firenet-custom-component/pulls).
+Veuillez vous référer au fichier [CONTRIBUTING.md](CONTRIBUTING.md).
