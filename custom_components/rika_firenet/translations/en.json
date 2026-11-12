@@ -16,6 +16,22 @@
           "username": "The email address used to log in at www.rika-firenet.com (Cloud only)",
           "password": "The password for your Rika Firenet account (Cloud only)"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Reconfigure Rika Firenet Connection",
+        "description": "Switch between Rika Cloud and Open Firenet Local HTTP, or update your host/credentials.",
+        "data": {
+          "connection_type": "Connection type",
+          "host": "Open Firenet Host / IP",
+          "username": "Username (Email)",
+          "password": "Password"
+        },
+        "data_description": {
+          "connection_type": "Choose between Rika Firenet Cloud (rika-firenet.com) or local direct HTTP with Open Firenet.",
+          "host": "Bridge hostname or local IP address for Open Firenet (e.g., open-firenet.local or 192.168.1.50).",
+          "username": "The email address used to log in at www.rika-firenet.com (Cloud only)",
+          "password": "The password for your Rika Firenet account (Cloud only)"
+        }
       }
     },
     "error": {

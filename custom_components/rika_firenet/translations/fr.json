@@ -16,6 +16,22 @@
           "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com (Cloud uniquement)",
           "password": "Le mot de passe associé à votre compte Rika Firenet (Cloud uniquement)"
         }
+      },
+      "reconfigure_confirm": {
+        "title": "Reconfigurer la connexion Rika Firenet",
+        "description": "Basculez entre le mode Cloud Rika et le mode Local Open Firenet, ou modifiez vos identifiants/adresse d'hôte.",
+        "data": {
+          "connection_type": "Type de connexion",
+          "host": "Hôte / IP Open Firenet",
+          "username": "Identifiant (Email)",
+          "password": "Mot de passe"
+        },
+        "data_description": {
+          "connection_type": "Choisissez entre le Cloud Rika Firenet (rika-firenet.com) ou le protocole local HTTP Open Firenet.",
+          "host": "Nom d'hôte ou adresse IP locale du pont Open Firenet (ex: open-firenet.local ou 192.168.1.50).",
+          "username": "L'adresse email utilisée pour vous connecter sur www.rika-firenet.com (Cloud uniquement)",
+          "password": "Le mot de passe associé à votre compte Rika Firenet (Cloud uniquement)"
+        }
       }
     },
     "error": {
