@@ -57,15 +57,15 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
         return self._stove.get_status_picture() # self._stove is updated by the coordinator
 
     @property
-    def current_temperature(self):
+    def native_current_temperature(self):
         return self._stove.get_room_temperature()
 
     @property
-    def min_temp(self):
+    def native_min_temp(self):
         return MIN_TEMP
 
     @property
-    def max_temp(self):
+    def native_max_temp(self):
         return MAX_TEMP
 
     @property
@@ -79,7 +79,7 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
         return self._stove.get_preset_mode()
 
     @property
-    def target_temperature(self):
+    def native_target_temperature(self):
         # In manual mode (operatingMode == 0) or without an active thermostat setpoint,
         # the stove regulates by power and not by target temperature.
         if self._stove.get_stove_operation_mode() == 0:
@@ -90,7 +90,7 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
         return temp
 
     @property
-    def target_temperature_step(self):
+    def native_target_temperature_step(self):
         return 1
 
     @property
@@ -118,7 +118,7 @@ class RikaFirenetStoveClimate(RikaFirenetEntity, ClimateEntity):
         return features
 
     @property
-    def temperature_unit(self):
+    def native_temperature_unit(self):
         return UnitOfTemperature.CELSIUS
 
     async def async_set_temperature(self, **kwargs):

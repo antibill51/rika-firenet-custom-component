@@ -197,7 +197,6 @@ class OptionsFlow:
 
 ha_config_entries.ConfigFlow = ConfigFlow
 ha_config_entries.OptionsFlow = OptionsFlow
-ha_config_entries.CONN_CLASS_CLOUD_POLL = "cloud_poll"
 
 vol_mock = ModuleType("voluptuous")
 vol_mock.Required = lambda k, default=None: k
@@ -477,8 +476,8 @@ class TestOpenFirenetCompatibility(unittest.TestCase):
 
         # Climate
         clim = RikaFirenetStoveClimate(entry, stove, coord)
-        self.assertEqual(clim.current_temperature, 22.5)
-        self.assertEqual(clim.target_temperature, 18.0)
+        self.assertEqual(clim.native_current_temperature, 22.5)
+        self.assertEqual(clim.native_target_temperature, 18.0)
         self.assertEqual(clim.preset_mode, "comfort")
         self.assertEqual(clim.hvac_mode, "off")
         self.assertIn("http://192.168.1.50", clim.device_info["configuration_url"])
